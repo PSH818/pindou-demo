@@ -1,0 +1,252 @@
+@use '../../styles/tokens' as *;
+
+// ─── 整体布局 ─────────────────────────────────────────────────
+
+.preprocess-page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: #000;
+  overflow: hidden;
+}
+
+// ─── 顶部栏 ──────────────────────────────────────────────────
+
+.preprocess-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 12px;
+  background: $bg-card;
+  border-bottom: 2px solid $border;
+  flex-shrink: 0;
+}
+
+.preprocess-topbar__back {
+  width: 60px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.preprocess-topbar__back-text {
+  font-size: 16px;
+  color: $accent;
+}
+
+.preprocess-topbar__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text;
+}
+
+.preprocess-topbar__confirm {
+  padding: 7px 16px;
+  border-radius: 16px;
+  background: $accent;
+  box-shadow: 0 3px 10px rgba(240, 135, 78, 0.28);
+  cursor: pointer;
+  transition: opacity var(--transition);
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 0.92;
+    }
+  }
+
+  &:active { opacity: 0.82; }
+
+  &--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+.preprocess-topbar__confirm-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+// ─── 图片预览区 ───────────────────────────────────────────────
+
+.preprocess-image-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  // 裁剪拖拽走 Pointer Events，禁用浏览器默认触摸滚动/缩放手势
+  touch-action: none;
+}
+
+.preprocess-image {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+// ─── 裁剪遮罩 ────────────────────────────────────────────────
+
+.preprocess-crop-layer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.preprocess-mask {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.50);
+}
+
+.preprocess-cropbox {
+  position: absolute;
+  border: 2px solid rgba(255, 255, 255, 0.90);
+}
+
+.preprocess-third {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.22);
+
+  &--h {
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+  &--v {
+    top: 0;
+    bottom: 0;
+    width: 2px;
+  }
+}
+
+.preprocess-handle {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+
+  &--tl { transform: translate(-50%, -50%); }
+  &--tr { transform: translate(-50%, -50%); }
+  &--bl { transform: translate(-50%, -50%); }
+  &--br { transform: translate(-50%, -50%); }
+}
+
+.preprocess-handle__dot {
+  width: 16px;
+  height: 16px;
+  border: 4px solid #fff;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(44, 24, 16, 0.45);
+}
+
+// ─── 底部工具栏 ───────────────────────────────────────────────
+
+.preprocess-toolbar {
+  background: $bg-card;
+  border-top: 2px solid $border;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 8px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+
+.preprocess-tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 72px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background var(--transition), opacity var(--transition);
+
+  @media (hover: hover) {
+    &:not(.preprocess-tool-btn--active):hover {
+      background: rgba(var(--accent-rgb), 0.06);
+    }
+  }
+
+  &--active {
+    background: rgba(var(--accent-rgb), 0.12);
+  }
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.preprocess-topbar__identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preprocess-tool-icon-img {
+  width: 24px;
+  height: 24px;
+
+  // 与 ToolBar 一致：激活态用滤镜提亮到主色
+  .preprocess-tool-btn--active & { filter: saturate(350%) brightness(115%); }
+}
+
+.preprocess-tool-label {
+  font-size: 12px;
+  color: $text-dim;
+  line-height: 1;
+  white-space: nowrap;
+
+  .preprocess-tool-btn--active & { color: $accent; font-weight: 500; }
+}
+
+// Desktop: 底部工具栏保持不变，仅限制工具按钮间距更舒适
+@media (min-width: 768px) {
+  .preprocess-toolbar {
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .preprocess-tool-btn {
+    min-width: 88px;
+  }
+}
+
+// ─── 抠图推理加载叠层 ─────────────────────────────────────────
+
+.preprocess-removing-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.60);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.preprocess-removing-text {
+  font-size: 16px;
+  color: #fff;
+  font-weight: 500;
+  text-align: center;
+  padding: 0 24px;
+}

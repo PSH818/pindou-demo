@@ -1,0 +1,233 @@
+@use '../../styles/tokens' as *;
+
+$selected-ring: $accent;
+
+// ─── Mobile: horizontal scroll bar ───────────────────────────
+
+.color-panel {
+  background: $bg-card;
+  border-top: 2px solid $border;
+  flex-shrink: 0;
+  button { -webkit-tap-highlight-color: transparent; }
+}
+
+.color-panel__scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.color-panel__inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 10px;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.color-swatch {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 4px 4px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+  position: relative;
+  min-width: 44px;
+  cursor: pointer;
+  transition: transform var(--transition);
+
+  &--selected {
+    border-color: $selected-ring;
+    background: rgba(var(--accent-rgb), 0.10);
+  }
+
+  &--highlight {
+    border-color: $selected-ring;
+    background: rgba(var(--accent-rgb), 0.10);
+  }
+
+  &:disabled { opacity: 0.45; cursor: default; }
+
+  @media (hover: hover) {
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+}
+
+.color-highlight {
+  padding: 8px 12px 0;
+  flex-shrink: 0;
+  &__modes {
+    display: flex;
+    width: 100%;
+    max-width: 280px;
+    padding: 3px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    background: $bg-muted;
+    button {
+      flex: 1;
+      min-height: 44px;
+      border-radius: 8px;
+      text-align: center;
+      color: $dim;
+      font-size: 13px;
+    }
+    button[aria-pressed='true'] { background: $bg-card; color: $accent; box-shadow: $shadow-sm; font-weight: 600; }
+    button:disabled { opacity: 0.45; cursor: default; }
+  }
+  &__hint { margin: 0; color: $dim; font-size: 12px; }
+  &__status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: $text; }
+  &__dot { width: 16px; height: 16px; border: 1px solid $border; border-radius: 50%; flex-shrink: 0; }
+  &__actions {
+    display: flex;
+    gap: 4px;
+    button { display: flex; align-items: center; justify-content: center; flex: 1; min-height: 44px; min-width: 44px; color: $accent; font-size: 12px; border-radius: 8px; }
+    button:disabled { color: $dim; opacity: 0.5; }
+  }
+}
+
+.color-swatch__dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(150, 70, 30, 0.10) inset;
+}
+
+.color-swatch__code {
+  font-size: 10px;
+  color: $dim;
+  line-height: 1;
+  max-width: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.color-swatch__count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  color: #fff;
+  background: rgba(0,0,0,0.45);
+  border-radius: 4px;
+  padding: 0 3px;
+  line-height: 14px;
+}
+
+// ─── Tab bar ──────────────────────────────────────────────────
+
+.cp-tabs {
+  display: flex;
+  border-bottom: 2px solid $border;
+  flex-shrink: 0;
+}
+
+.cp-tab {
+  flex: 1;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: $dim;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+
+  &--active {
+    color: $selected-ring;
+    font-weight: 600;
+    border-bottom-color: $selected-ring;
+  }
+}
+
+// ─── Params content ────────────────────────────────────────────
+
+// 移动端：底部面板内展开为可滚动的调参区（重新生成的入口，
+// 窄屏下顶栏「重新生成」按钮隐藏，统一从这里进）
+.cp-params {
+  display: flex;
+  flex-direction: column;
+  max-height: 45dvh;
+  overflow-y: auto;
+  padding: 12px 16px;
+  gap: 10px;
+
+  .params-convert-btn {
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+}
+
+// ─── Desktop: vertical right sidebar ────────────────────────
+
+@media (min-width: 1024px) {
+  .color-panel {
+    border-top: none;
+    border-left: 2px solid $border;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .color-panel__scroll {
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .color-panel__inner {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px;
+    white-space: normal;
+    align-items: start;
+    justify-items: center;
+  }
+
+  .color-swatch {
+    min-width: unset;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  // Tab bar
+  .cp-tabs {
+    display: flex;
+    border-bottom: 2px solid $border;
+    flex-shrink: 0;
+  }
+
+  // Params content
+  .cp-params {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-height: none;
+    overflow-y: auto;
+    padding: 12px;
+    gap: 10px;
+
+    .params-section {
+      box-shadow: none;
+      background: $bg-muted;
+    }
+
+    .params-convert-btn {
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+  }
+}

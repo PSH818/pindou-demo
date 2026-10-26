@@ -1,0 +1,45 @@
+// ─── 设计 Token 单一来源 ──────────────────────────────────────
+// 与 docs/DESIGN_SYSTEM.md 对应。所有 SCSS 文件通过
+//   @use '../../styles/tokens' as *;
+// 引入，禁止在组件样式里重新声明色值。
+//
+// 色值是 CSS 变量引用——实际颜色在 app.scss 的 :root 中定义，
+// 深色模式通过 prefers-color-scheme 覆写同一组变量实现。
+// 需要 alpha 通道时写通道变量：rgba(var(--accent-rgb), 0.1)
+// （sass 会原样透传，浏览器在运行时求值）。
+
+// 颜色
+$bg:            var(--bg);
+$bg-card:       var(--bg-card);
+$bg-muted:      var(--bg-muted);
+$accent:        var(--accent);
+$accent-strong: var(--accent-strong); // hover 态：浅色主题加深 / 深色主题提亮
+$sage:          var(--sage);
+$text:          var(--text);
+$text-dim:      var(--text-dim);
+$border:        var(--border);
+$border-strong: var(--border-strong); // hover 态：浅色主题加深 / 深色主题提亮
+$overlay-bg:    var(--overlay-bg);
+
+$accent-light:  rgba(var(--accent-rgb), 0.10);
+$sage-light:    rgba(var(--sage-rgb), 0.12);
+
+// 阴影（完整阴影串存 CSS 变量）
+$shadow-sm:   var(--shadow-sm);
+$shadow-md:   var(--shadow-md);
+$shadow-lg:   var(--shadow-lg);
+$shadow-cta:  var(--shadow-cta);
+$shadow-sage: var(--shadow-sage);
+
+// 圆角（与主题无关）
+$radius-lg: 20px;
+$radius-md: 14px;
+$radius-sm: 10px;
+
+// ─── 历史命名别名（新代码请用上面的规范名）─────────────────────
+$bg-page:  $bg;
+$bg-bar:   $bg-card;
+$bg-new:   $bg-card;
+$bg-thumb: $bg-muted;
+$dim:      $text-dim;
+$active:   $accent;

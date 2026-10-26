@@ -1,0 +1,34 @@
+{
+  "name": "pindou-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "拼豆图纸设计工具（精简演示版）",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/utils/patternLimits.test.ts src/utils/palette.test.ts src/utils/conversionSettings.test.ts src/utils/manualGridCount.test.ts src/utils/analyzeImageLoader.test.ts src/utils/sticker.test.ts src/utils/making.test.ts src/utils/patternPersistence.test.ts src/workers/perceptualCore.test.js src/workers/cartoonCore.test.js src/workers/flatBackground.test.js src/workers/gridCellSample.test.js src/workers/gridPeriod.test.js src/workers/gridLocate.test.js",
+    "check": "npm run typecheck && npm test && npm run build",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "idb": "^7.1.1",
+    "jspdf": "^4.2.1",
+    "nanoid": "^4.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "sass": "^1.69.0",
+    "typescript": "^5.2.0",
+    "vite": "^5.1.0"
+  }
+}

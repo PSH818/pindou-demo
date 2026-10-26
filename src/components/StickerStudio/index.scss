@@ -1,0 +1,57 @@
+@use '../../styles/tokens' as *;
+
+.sticker-studio {
+  width: min(1080px, calc(100vw - 32px));
+  height: min(800px, calc(100dvh - 32px));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  margin: auto;
+  border: 1px solid $border;
+  border-radius: 20px;
+  color: $text;
+  background: $bg-card;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  &[open] { display: flex; flex-direction: column; }
+  &::backdrop { background: $overlay-bg; }
+  button { min-height: 44px; padding: 8px 12px; border-radius: 8px; -webkit-tap-highlight-color: transparent; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button[aria-pressed='true'] { background: $accent-light; color: $accent; box-shadow: inset 0 0 0 1px $accent; }
+  p { margin: 0; font-size: 12px; line-height: 1.5; color: $dim; }
+  h2 { font-size: 17px; margin: 0 0 4px; }
+  select, input:not([type='checkbox']) { min-width: 0; min-height: 44px; border: 1px solid $border; border-radius: 8px; padding: 4px 8px; color: $text; background: $bg; font-size: 14px; }
+  &__header, &__footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; flex-shrink: 0; }
+  &__header { border-bottom: 1px solid $border; }
+  &__footer { border-top: 1px solid $border; justify-content: flex-end; }
+  &__confirm { background: $accent; color: $bg-card; min-width: 120px; }
+  &__body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; flex: 1; min-height: 0; }
+  &__preview { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: $bg; }
+  &__preview-tools { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; color: $dim; }
+  &__viewport { overflow: auto; flex: 1; min-height: 0; }
+  canvas { display: block; touch-action: none; cursor: move; }
+  &__settings { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; border-left: 1px solid $border; }
+  &__settings > label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+  &__settings > label > span:not(.sticker-studio__color) { font-size: 12px; color: $dim; }
+  &__library { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  &__library button { padding: 8px 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; font-size: 12px; border: 1px solid $border; }
+  &__mini { display: grid; width: 36px; }
+  &__transforms { display: flex; flex-wrap: wrap; gap: 4px; }
+  &__transforms button { font-size: 12px; background: $bg-muted; padding: 8px; flex: 1; white-space: nowrap; }
+  &__position { display: flex; gap: 8px; align-items: end; }
+  &__position label { flex: 1; min-width: 0; font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+  &__position input { width: 100%; box-sizing: border-box; }
+  &__color { width: 24px; height: 24px; border: 1px solid $border; border-radius: 50%; }
+  &__notice { padding: 10px; border-radius: 8px; background: $bg-muted; font-size: 13px; }
+  &__consent { min-height: 44px; }
+  @media (max-width: 700px) {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    &__header, &__footer { padding: 8px 12px; }
+    &__footer { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    &__body { grid-template-columns: 1fr; grid-template-rows: minmax(180px, 42%) minmax(0, 1fr); }
+    &__settings { border-left: 0; border-top: 1px solid $border; padding: 12px; gap: 10px; }
+  }
+}

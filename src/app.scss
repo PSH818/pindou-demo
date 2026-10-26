@@ -1,0 +1,104 @@
+// 全局基础样式。设计 token（SCSS 引用）在 src/styles/_tokens.scss，
+// 实际色值在本文件 :root 中定义；深色模式通过 prefers-color-scheme 自动切换，
+// 覆写同一组 CSS 变量，组件样式零改动。
+@use './styles/tokens' as *;
+
+:root {
+  --transition: 150ms ease-out;
+
+  // ─── 浅色主题（奶茶米白系，默认值）─────────────────────────
+  --bg:            #FAF7F3;
+  --bg-card:       #FFFBF7;
+  --bg-muted:      #FEF3E6;
+  --accent:        #F0874E;
+  --accent-strong: #E5773A;
+  --accent-rgb:    240, 135, 78;
+  --sage:          #6BA886;
+  --sage-rgb:      107, 168, 134;
+  --text:          #2C1810;
+  --text-rgb:      44, 24, 16;
+  --text-dim:      #9B7E72;
+  --border:        #EDD0B8;
+  --border-rgb:    237, 208, 184;
+  --border-strong: #E2C2A3;
+  --overlay-bg:    rgba(44, 24, 16, 0.50);
+
+  --shadow-sm:   0 2px 10px rgba(150, 70, 30, 0.08);
+  --shadow-md:   0 4px 20px rgba(150, 70, 30, 0.10);
+  --shadow-lg:   0 8px 32px rgba(150, 70, 30, 0.12);
+  --shadow-cta:  0 4px 14px rgba(240, 135, 78, 0.32);
+  --shadow-sage: 0 4px 14px rgba(107, 168, 134, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    // ─── 深色主题（暖棕夜色系）────────────────────────────────
+    // 主色 accent 不变（橙在暗底上表现良好）；图纸 Canvas 区域
+    // 保持暖白（见 PatternCanvas/renderer.ts），仅 UI 框架变暗。
+    --bg:            #221A13;
+    --bg-card:       #2E241B;
+    --bg-muted:      #3B2E22;
+    --accent-strong: #F6A473;
+    --sage:          #7FBD9C;
+    --sage-rgb:      127, 189, 156;
+    --text:          #F1E8DE;
+    --text-rgb:      241, 232, 222;
+    --text-dim:      #B49B8C;
+    --border:        #4B3B2C;
+    --border-rgb:    75, 59, 44;
+    --border-strong: #5D4A38;
+    --overlay-bg:    rgba(8, 5, 3, 0.62);
+
+    --shadow-sm:   0 2px 10px rgba(12, 6, 3, 0.30);
+    --shadow-md:   0 4px 20px rgba(12, 6, 3, 0.36);
+    --shadow-lg:   0 8px 32px rgba(12, 6, 3, 0.42);
+    --shadow-cta:  0 4px 14px rgba(240, 135, 78, 0.28);
+    --shadow-sage: 0 4px 14px rgba(127, 189, 156, 0.22);
+  }
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background-color: $bg;
+  color: $text;
+  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  height: 100%;
+  overflow: hidden;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+// 全局按钮 reset —— 可点击操作统一用原生 <button>（见 components/Button）
+button {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid $accent;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.app-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  color: $text-dim;
+  background: $bg-card;
+  font-size: 14px;
+}

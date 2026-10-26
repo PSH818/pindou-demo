@@ -1,0 +1,205 @@
+@use '../../styles/tokens' as *;
+
+// ─── Mobile: horizontal bottom bar ───────────────────────────
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  background: $bg-card;
+  padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 2px solid $border;
+  flex-shrink: 0;
+}
+
+.toolbar__tools,
+.toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar__divider {
+  width: 2px;
+  height: 28px;
+  background: $border;
+  margin: 0 6px;
+}
+
+.toolbar__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 44px;
+  border-radius: 8px;
+  gap: 3px;
+  cursor: pointer;
+  transition: background var(--transition), opacity var(--transition);
+
+  &:active {
+    opacity: 0.75;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background: rgba(var(--accent-rgb), 0.08);
+    }
+  }
+
+  &--active {
+    background: rgba(var(--accent-rgb), 0.14);
+
+    .toolbar__icon-img {
+      filter: saturate(350%) brightness(115%);
+    }
+
+    .toolbar__label {
+      color: $active;
+      font-weight: 600;
+    }
+  }
+
+  &--disabled {
+    opacity: 0.28;
+    pointer-events: none;
+  }
+}
+
+.toolbar__icon-img {
+  width: 26px;
+  height: 26px;
+}
+
+.toolbar__label {
+  font-size: 11px;
+  color: $dim;
+  line-height: 1;
+}
+
+// ─── Desktop: vertical left sidebar ─────────────────────────
+
+@media (min-width: 1024px) {
+  .toolbar {
+    flex-direction: column;
+    height: 100%;
+    width: 72px;
+    padding: 16px 0;
+    padding-bottom: 16px;
+    border-top: none;
+    border-right: 2px solid $border;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto;
+    gap: 0;
+  }
+
+  .toolbar__tools,
+  .toolbar__actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .toolbar__divider {
+    width: 40px;
+    height: 2px;
+    margin: 8px 0;
+  }
+
+  .toolbar__btn {
+    width: 56px;
+    height: 52px;
+    border-radius: 10px;
+  }
+
+  .toolbar__label {
+    font-size: 10px;
+  }
+}
+
+// ─── 格线控制 ──────────────────────────────────────────────
+
+.toolbar__btn--grid-open {
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+.toolbar__grid-icon-wrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar__grid-dot {
+  position: absolute;
+  bottom: 1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px $bg-card;
+  pointer-events: none;
+}
+
+// ─── Popover（position:fixed，由 JS 定位，不受 overflow 裁剪）
+
+.toolbar__grid-popover {
+  z-index: 1000;
+  background: $bg-card;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow:
+    0 4px 20px rgba(150, 70, 30, 0.16),
+    0 1px 4px  rgba(150, 70, 30, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  white-space: nowrap;
+  // position / left / top / transform 全由 JS style prop 注入
+}
+
+.toolbar__grid-popover__title {
+  font-size: 12px;
+  color: $text-dim;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.toolbar__grid-swatches {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar__grid-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s;
+
+  &:hover { transform: scale(1.1); }
+
+  &--off {
+    background: #F0EDEA;
+    color: $text-dim;
+    border-color: $border;
+  }
+
+  &--active {
+    box-shadow: 0 0 0 2.5px $bg-card, 0 0 0 4.5px $active;
+  }
+}

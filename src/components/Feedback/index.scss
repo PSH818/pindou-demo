@@ -1,0 +1,178 @@
+@use '../../styles/tokens' as *;
+
+// ─── Toast ─────────────────────────────────────────────────────
+
+.fb-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: $bg-card;
+  color: $text;
+  padding: 10px 20px;
+  border: 1px solid $border;
+  border-radius: 20px;
+  box-shadow: $shadow-md;
+  font-size: 14px;
+  z-index: 9999;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: calc(100vw - 48px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: fb-fade-in 0.18s ease-out;
+}
+
+// ─── 遮罩 ─────────────────────────────────────────────────────
+
+.fb-overlay {
+  position: fixed;
+  inset: 0;
+  background: $overlay-bg;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fb-fade-in 0.15s ease-out;
+
+  &--sheet {
+    align-items: flex-end;
+  }
+}
+
+// ─── 对话框（Modal / Prompt）────────────────────────────────────
+
+.fb-dialog {
+  width: min(320px, calc(100vw - 64px));
+  background: $bg-card;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  padding: 20px 20px 16px;
+  animation: fb-pop-in 0.18s ease-out;
+
+  &__title {
+    display: block;
+    font-size: 17px;
+    font-weight: 700;
+    color: $text;
+    text-align: center;
+  }
+
+  &__content {
+    margin: 10px 0 0;
+    font-size: 14px;
+    color: $text-dim;
+    text-align: center;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  &__input {
+    display: block;
+    width: 100%;
+    height: 40px;
+    margin-top: 14px;
+    padding: 0 12px;
+    background: $bg;
+    border: 1px solid $border;
+    border-radius: $radius-sm;
+    font-size: 15px;
+    font-family: inherit;
+    color: $text;
+    outline: none;
+
+    &:focus {
+      border-color: $accent;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+}
+
+.fb-btn {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: 15px;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+  }
+
+  &--ghost {
+    background: $bg-muted;
+    color: $text;
+  }
+
+  &--primary {
+    background: $accent;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: $shadow-cta;
+  }
+}
+
+// ─── 底部动作面板（ActionSheet）─────────────────────────────────
+
+.fb-sheet {
+  width: 100%;
+  background: $bg-card;
+  border-radius: $radius-lg $radius-lg 0 0;
+  padding: 8px 0 calc(24px + env(safe-area-inset-bottom));
+  animation: fb-slide-up 0.2s ease-out;
+
+  &__item {
+    display: block;
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    background: none;
+    font-size: 16px;
+    font-family: inherit;
+    color: $text;
+    text-align: center;
+    cursor: pointer;
+
+    @media (hover: hover) {
+      &:hover {
+        background: $accent-light;
+      }
+    }
+
+    &--destructive {
+      color: #e5484d;
+    }
+  }
+
+  &__cancel {
+    margin-top: 8px;
+    border-top: 1px solid $border;
+    color: $text-dim;
+  }
+}
+
+// ─── 动画 ─────────────────────────────────────────────────────
+
+@keyframes fb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fb-pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fb-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}

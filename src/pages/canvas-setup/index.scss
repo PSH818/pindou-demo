@@ -1,0 +1,277 @@
+@use '../../styles/tokens' as *;
+
+.setup-page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: $bg;
+  overflow: hidden;
+}
+
+// ─── 顶部栏 ───────────────────────────────────────────────────
+
+.setup-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 12px;
+  background: $bg;
+  border-bottom: 1px solid $border;
+  flex-shrink: 0;
+}
+
+.setup-topbar__back {
+  width: 60px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.setup-topbar__back-text {
+  font-size: 16px;
+  color: $accent;
+}
+
+.setup-topbar__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text;
+}
+
+// ─── 主体内容 ─────────────────────────────────────────────────
+
+.setup-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setup-section {
+  background: $bg;
+  border-radius: $radius-lg;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 10px rgba(150, 70, 30, 0.08);
+  border: 1px solid $border;
+}
+
+.setup-section__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $text;
+}
+
+// ─── 预设尺寸 ─────────────────────────────────────────────────
+
+.setup-presets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.setup-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px;
+  border-radius: $radius-md;
+  border: 1.5px solid $border;
+  gap: 4px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+
+  @media (hover: hover) {
+    &:not(.setup-preset--active):hover {
+      background: rgba(var(--accent-rgb), 0.06);
+      border-color: rgba(var(--accent-rgb), 0.4);
+    }
+  }
+
+  &--active {
+    border-color: $accent;
+    background: rgba(var(--accent-rgb), 0.08);
+
+    .setup-preset__label,
+    .setup-preset__sub { color: $accent; }
+  }
+
+  &:active { opacity: 0.7; }
+}
+
+.setup-preset__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: $text;
+}
+
+.setup-preset__sub {
+  font-size: 11px;
+  color: $text-dim;
+}
+
+// ─── 自定义尺寸 ───────────────────────────────────────────────
+
+.setup-custom-size {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: $bg-muted;
+  border-radius: $radius-md;
+  padding: 12px 16px;
+}
+
+.setup-custom-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.setup-custom-label {
+  font-size: 13px;
+  color: $text-dim;
+  flex-shrink: 0;
+}
+
+.setup-custom-input {
+  flex: 1;
+  height: 36px;
+  background: $bg;
+  border: 1.5px solid $border;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: $accent;
+  text-align: center;
+  outline: none;
+  transition: border-color var(--transition);
+
+  &:focus {
+    border-color: $accent;
+  }
+}
+
+.setup-custom-x {
+  font-size: 16px;
+  color: $text-dim;
+  flex-shrink: 0;
+}
+
+.setup-size-hint {
+  font-size: 12px;
+  color: $text-dim;
+}
+
+// ─── 品牌选择 ─────────────────────────────────────────────────
+
+.setup-brands {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setup-brand {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: $radius-md;
+  border: 1.5px solid $border;
+  gap: 8px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+
+  @media (hover: hover) {
+    &:not(.setup-brand--active):hover {
+      background: rgba(var(--accent-rgb), 0.04);
+      border-color: rgba(var(--accent-rgb), 0.4);
+    }
+  }
+
+  &--active {
+    border-color: $accent;
+    background: rgba(var(--accent-rgb), 0.06);
+
+    .setup-brand__name { color: $accent; }
+  }
+
+  &:active { opacity: 0.7; }
+}
+
+.setup-brand__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text;
+  flex: 1;
+}
+
+.setup-brand__desc {
+  font-size: 12px;
+  color: $text-dim;
+}
+
+// ─── 底部按钮 ─────────────────────────────────────────────────
+
+.setup-footer {
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+
+.setup-start-btn {
+  width: 100%;
+  height: 52px;
+  background: $accent;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(240, 135, 78, 0.32);
+  cursor: pointer;
+  transition: opacity var(--transition);
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 0.92;
+    }
+  }
+
+  &--loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  &:active { opacity: 0.85; }
+}
+
+.setup-start-btn__text {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+}
+
+// ─── Desktop: centered card ──────────────────────────────────
+
+@media (min-width: 768px) {
+  .setup-body {
+    max-width: 560px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .setup-footer {
+    max-width: 560px;
+    width: 100%;
+    margin: 0 auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

@@ -1,0 +1,31 @@
+@use '../../styles/tokens' as *;
+
+.algorithm-comparison {
+  height: 100dvh;
+  overflow: auto;
+  padding: 20px;
+  background: $bg;
+  color: $text;
+  h1 { font-size: 20px; }
+  h2 { font-size: 16px; margin: 0; }
+  p { font-size: 13px; line-height: 1.7; color: $text-dim; }
+  button { min-height: 44px; padding: 8px 16px; border: 1px solid $border; border-radius: $radius-sm; }
+  &__header { display: flex; align-items: center; justify-content: space-between; }
+  &__source { display: block; max-width: 100%; max-height: 280px; margin-top: 12px; }
+  &__zoom { display: flex; align-items: center; gap: 12px; margin: 20px 0; font-size: 14px; }
+  &__results { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  section { min-width: 0; background: $bg-card; padding: 16px; border: 1px solid $border; border-radius: $radius-md; }
+  &__viewport {
+    max-height: min(60vh, 640px);
+    overflow: auto;
+    background: repeating-conic-gradient(#ece8e0 0% 25%, #faf7f3 0% 50%) 0 / 16px 16px;
+    img { display: block; max-width: none; height: auto; image-rendering: pixelated; }
+  }
+  &__use { width: 100%; margin-top: 16px; background: $accent; color: $bg-card; }
+  @media (max-width: 700px) {
+    padding: 12px;
+    &__results { gap: 8px; }
+    section { padding: 8px; }
+    h2 { font-size: 14px; }
+  }
+}

@@ -1,0 +1,131 @@
+@use '../../styles/tokens' as *;
+
+.pattern-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: $bg-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  border: 2px solid $border;
+  box-shadow: 0 4px 14px rgba(150, 70, 30, 0.10);
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), opacity var(--transition);
+  cursor: pointer;
+
+  &:active {
+    opacity: 0.80;
+    transform: none !important;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(150, 70, 30, 0.16);
+    }
+  }
+
+  &--selected {
+    border-color: $accent;
+  }
+}
+
+// ─── 缩略图 ───────────────────────────────────────────────────
+
+.pattern-card__thumb {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  background: $bg-thumb;
+}
+
+.pattern-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pattern-card__placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 3px;
+  padding: 8px;
+  background: $bg-thumb;
+  box-sizing: border-box;
+}
+
+.pattern-card__bead {
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+}
+
+.pattern-card__size-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(44, 24, 16, 0.45);
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+
+.pattern-card__size-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.2;
+}
+
+// ─── 信息区域 ────────────────────────────────────────────────
+
+.pattern-card__info {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pattern-card__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: $text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pattern-card__time {
+  font-size: 12px;
+  color: $text-dim;
+}
+
+// ─── 管理模式选择圆圈 ────────────────────────────────────────
+
+.pattern-card__select {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid $border;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(44, 24, 16, 0.12);
+
+  &--on {
+    background: $accent;
+    border-color: $accent;
+  }
+}
+
+.pattern-card__select-check {
+  font-size: 13px;
+  color: #fff;
+  line-height: 1;
+  font-weight: 700;
+}
