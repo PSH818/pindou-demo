@@ -9,6 +9,7 @@ import Button from '../../components/Button'
 import { listPatterns, deletePattern, savePattern, checkCapacity } from '../../utils/storage'
 import { showToast, showModal, showPrompt, showActionSheet, pickImageFile, limitImageSize } from '../../utils/webUtils'
 import { usePatternStore } from '../../store/patternStore'
+import { isPatternCapacityReached } from '../../utils/patternLimits'
 import type { PatternMeta } from '../../types'
 import './index.scss'
 
@@ -47,8 +48,9 @@ export default function IndexPage() {
 
   const handleNew = useCallback(async () => {
     if (creating) return
-    const { isFull } = await checkCapacity()
-    if (isFull) {
+    // iOS Safari 只允许在点击的同步调用里打开文件选择框，先 await 存储再 click 会被静默拦截。
+    // 容量用已加载的列表判断；写入第 51 张时存储层仍会拦截
+    if (isPatternCapacityReached(patterns.length)) {
       await showModal({ title: '图纸已满', content: '本地最多保存 50 张图纸，请先删除一些旧图纸。', showCancel: false })
       return
     }
@@ -63,7 +65,7 @@ export default function IndexPage() {
     } finally {
       setCreating(false)
     }
-  }, [creating, navigate])
+  }, [creating, navigate, patterns.length])
 
   // Ctrl+V 粘贴图片 → 直接进"新建图纸"流程
   useEffect(() => {
