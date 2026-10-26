@@ -8,6 +8,7 @@
 
 import type { Pattern, BrandId, BeadColor } from '../types'
 import { TRANSPARENT } from '../types'
+import { downloadBlob } from './webUtils'
 
 export { loadImageInfo, type ImageInfo } from './analyzeImageLoader'
 
@@ -140,9 +141,5 @@ export function exportColorEntriesCSV(entries: ColorEntry[], patternName: string
 
   const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n')
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `${patternName}_用料清单.csv`
-  a.click()
-  URL.revokeObjectURL(a.href)
+  downloadBlob(blob, `${patternName}_用料清单.csv`)
 }

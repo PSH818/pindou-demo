@@ -8,6 +8,7 @@ import type { PrintOptions } from '../types/making'
 import { renderFull } from '../components/PatternCanvas/renderer'
 import { createOffscreenCanvas } from './canvasHelper'
 import { printPlan, tilePattern, MATERIALS_PER_PAGE } from './making'
+import { downloadBlob } from './webUtils'
 
 const W = 1240, H = 1754, PAD = 70
 const BG = '#FFFBF7', TEXT = '#2C1810', DIM = '#9B7E72', BORDER = '#EDD0B8', ACCENT = '#F0874E'
@@ -113,9 +114,6 @@ export async function buildPatternPDF(pattern: Pattern, colors: BeadColor[], opt
 }
 
 export async function exportPatternToPDF(pattern: Pattern, colors: BeadColor[], options: PrintOptions = DEFAULT_PRINT_OPTIONS, progress?: (current: number, total: number) => void): Promise<void> {
-  const blob = await buildPatternPDF(pattern, colors, options, progress), url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = `${pattern.name.replace(/[\\/:*?"<>|]/g, '_') || '拼豆图纸'}${options.mode === 'boards' ? '-分块' : ''}.pdf`
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 60000)
+  const blob = await buildPatternPDF(pattern, colors, options, progress)
+  downloadBlob(blob, `${pattern.name.replace(/[\\/:*?"<>|]/g, '_') || '拼豆图纸'}${options.mode === 'boards' ? '-分块' : ''}.pdf`)
 }

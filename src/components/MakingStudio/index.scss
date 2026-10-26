@@ -1,5 +1,5 @@
 @use '../../styles/tokens' as *;
-.making-studio { height: 100dvh; background: $bg; color: $text; display: flex; flex-direction: column;
+.making-studio { height: 100vh; height: 100dvh; background: $bg; color: $text; display: flex; flex-direction: column;
   button { min-height: 44px; padding: 8px 12px; border-radius: 10px; color: $text; background: $bg-muted; }
   button:disabled { opacity: .45; }
   button[aria-pressed='true'] { color: $accent-strong; background: $accent-light; box-shadow: inset 0 0 0 1px $accent; }

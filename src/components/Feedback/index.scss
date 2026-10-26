@@ -160,6 +160,65 @@
   }
 }
 
+// ─── 导出文件面板（手机端）───────────────────────────────────────
+
+.fb-file {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 92dvh;
+  padding: 18px 16px calc(16px + env(safe-area-inset-bottom));
+
+  &__name {
+    font-size: 12px;
+    color: $text-dim;
+    text-align: center;
+    word-break: break-all;
+  }
+
+  &__preview {
+    flex: 1 1 auto;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    background: $bg-muted;
+    border-radius: $radius-sm;
+
+    img {
+      display: block;
+      max-width: 100%;
+      max-height: 55dvh;
+      object-fit: contain;
+      // 允许 iOS / 微信长按弹出「保存图片」
+      -webkit-touch-callout: default;
+      user-select: auto;
+    }
+  }
+
+  &__loading {
+    font-size: 13px;
+    color: $text-dim;
+  }
+
+  &__tip {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $text-dim;
+    text-align: center;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .fb-btn { flex: none; height: 44px; }
+  }
+}
+
 // ─── 动画 ─────────────────────────────────────────────────────
 
 @keyframes fb-fade-in {

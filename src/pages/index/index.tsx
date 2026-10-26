@@ -7,7 +7,7 @@ import sampleImage   from '../../assets/sample-mushroom.png'
 import PatternCard from '../../components/PatternCard'
 import Button from '../../components/Button'
 import { listPatterns, deletePattern, savePattern, checkCapacity } from '../../utils/storage'
-import { showToast, showModal, showPrompt, showActionSheet, pickImageFile } from '../../utils/webUtils'
+import { showToast, showModal, showPrompt, showActionSheet, pickImageFile, limitImageSize } from '../../utils/webUtils'
 import { usePatternStore } from '../../store/patternStore'
 import type { PatternMeta } from '../../types'
 import './index.scss'
@@ -56,10 +56,10 @@ export default function IndexPage() {
       const tempPath = await pickImageFile()
       if (!tempPath) return
       setCreating(true)
-      navigate(`/preprocess?imagePath=${encodeURIComponent(tempPath)}`)
+      navigate(`/preprocess?imagePath=${encodeURIComponent(await limitImageSize(tempPath))}`)
     } catch (e: any) {
       if (String(e.message).includes('cancel') || String(e.message).includes('取消')) return
-      showToast('选图失败，请重试')
+      showToast('选图失败，请重试或换一张图片')
     } finally {
       setCreating(false)
     }
@@ -77,7 +77,11 @@ export default function IndexPage() {
         showToast('图纸已满，请先删除一些旧图纸')
         return
       }
-      navigate(`/preprocess?imagePath=${encodeURIComponent(URL.createObjectURL(file))}`)
+      try {
+        navigate(`/preprocess?imagePath=${encodeURIComponent(await limitImageSize(URL.createObjectURL(file)))}`)
+      } catch {
+        showToast('图片读取失败，请换一张图片')
+      }
     }
     document.addEventListener('paste', onPaste)
     return () => document.removeEventListener('paste', onPaste)
@@ -235,7 +239,8 @@ export default function IndexPage() {
               <span className="index-entry__plus">{creating ? '…' : '+'}</span>
             </span>
             <span className="index-entry__title">{creating ? '创建中…' : '新建图纸'}</span>
-            <span className="index-entry__hint">选择图片 · 或 Ctrl+V 粘贴</span>
+            <span className="index-entry__hint index-entry__hint--pointer">选择图片 · 或 Ctrl+V 粘贴</span>
+            <span className="index-entry__hint index-entry__hint--touch">拍照或从相册选择</span>
           </Button>
           <Button className="index-entry index-entry--draw" onClick={handleNewDraw}>
             <span className="index-entry__icon-wrap index-entry__icon-wrap--draw">

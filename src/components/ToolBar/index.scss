@@ -79,6 +79,23 @@
   line-height: 1;
 }
 
+// 窄屏（安卓常见 360、iPhone SE 320）：7 个 52px 按钮约 408px 放不下，
+// 超宽会把 overflow: hidden 的编辑器整体顶偏，按宽度收窄按钮和分隔线
+@media (max-width: 419px) {
+  .toolbar {
+    justify-content: space-between;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .toolbar__btn { width: 44px; }
+  .toolbar__divider { margin: 0 2px; }
+}
+
+@media (max-width: 359px) {
+  .toolbar__btn { width: 40px; }
+}
+
 // ─── Desktop: vertical left sidebar ─────────────────────────
 
 @media (min-width: 1024px) {

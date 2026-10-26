@@ -5,7 +5,7 @@ $radius:   16px;
 // ─── 页面容器 ────────────────────────────────────────────────
 
 .analyze-page {
-  min-height: 100dvh;
+  min-height: 100vh; min-height: 100dvh;
   background: $bg;
   display: flex;
   flex-direction: column;

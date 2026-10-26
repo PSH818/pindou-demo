@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import FileSheet from './FileSheet'
 import {
   _subscribeFeedback,
   type ActionSheetItem,
@@ -23,6 +24,7 @@ export default function FeedbackHost() {
   const [toast, setToast]     = useState<{ msg: string; seq: number } | null>(null)
   const [dialog, setDialog]   = useState<DialogState | null>(null)
   const [promptValue, setPromptValue] = useState('')
+  const [file, setFile]       = useState<{ blob: Blob; filename: string } | null>(null)
   const dialogRef = useRef<DialogState | null>(null)
   dialogRef.current = dialog
 
@@ -30,6 +32,10 @@ export default function FeedbackHost() {
     _subscribeFeedback((event: FeedbackEvent) => {
       if (event.kind === 'toast') {
         setToast(t => ({ msg: event.msg, seq: (t?.seq ?? 0) + 1 }))
+        return
+      }
+      if (event.kind === 'file') {
+        setFile({ blob: event.blob, filename: event.filename })
         return
       }
       // 新弹层替换旧弹层：旧调用按「取消」结算，避免 Promise 悬挂
@@ -167,6 +173,8 @@ export default function FeedbackHost() {
           </div>
         </div>
       )}
+
+      {file && <FileSheet blob={file.blob} filename={file.filename} onClose={() => setFile(null)} />}
     </>
   )
 }

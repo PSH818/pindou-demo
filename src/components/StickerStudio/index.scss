@@ -2,7 +2,7 @@
 
 .sticker-studio {
   width: min(1080px, calc(100vw - 32px));
-  height: min(800px, calc(100dvh - 32px));
+  height: min(800px, calc(100vh - 32px)); height: min(800px, calc(100dvh - 32px));
   max-width: none;
   max-height: none;
   padding: 0;
@@ -46,7 +46,7 @@
   &__consent { min-height: 44px; }
   @media (max-width: 700px) {
     width: 100vw;
-    height: 100dvh;
+    height: 100vh; height: 100dvh;
     border-radius: 0;
     border: 0;
     &__header, &__footer { padding: 8px 12px; }

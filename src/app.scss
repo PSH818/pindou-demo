@@ -67,6 +67,24 @@ html, body, #root {
   overflow: hidden;
 }
 
+html {
+  // 禁用双击放大（捏合缩放保留；画布另设 touch-action: none 自行处理手势）
+  touch-action: manipulation;
+  // 防止 iOS 横屏时自动放大文字
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+// iOS Safari 聚焦字号小于 16px 的输入框会自动放大页面且不复原；
+// 组件选择器优先级更高，这里只能用 !important 兜底
+@media (pointer: coarse) {
+  input:not([type='range']):not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
