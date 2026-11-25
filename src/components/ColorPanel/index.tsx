@@ -7,6 +7,7 @@ import './index.scss'
 
 export type ParamsTabProps = Omit<ConvertParamsFormProps, 'idPrefix'> & {
   onReconvert: () => void
+  reconverting?: boolean
 }
 
 interface Props {
@@ -144,8 +145,8 @@ export default function ColorPanel({ brandColors, paramsTab }: Props) {
         <div className="cp-params">
           <ConvertParamsForm {...paramsTab} idPrefix="sidebar" />
 
-          <Button className="params-convert-btn" onClick={paramsTab.onReconvert}>
-            <span className="params-convert-btn__text">重新生成</span>
+          <Button className="params-convert-btn" disabled={paramsTab.reconverting} onClick={paramsTab.onReconvert}>
+            <span className="params-convert-btn__text">{paramsTab.reconverting ? '转换中…' : '重新生成'}</span>
           </Button>
         </div>
       )}

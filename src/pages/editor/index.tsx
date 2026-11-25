@@ -15,6 +15,7 @@ import StickerStudio from '../../components/StickerStudio'
 import MakingStudio from '../../components/MakingStudio'
 import { usePatternStore } from '../../store/patternStore'
 import { ConversionCancelledError, usePattern } from '../../hooks/usePattern'
+import { useLivePreview } from '../../hooks/useLivePreview'
 import { getColorSystemForBrand, loadBrand } from '../../utils/palette'
 import { getPattern, savePattern, saveNewPatterns } from '../../utils/storage'
 import { PatternSaveSession, PatternConflictError, clonePattern } from '../../utils/patternPersistence'
@@ -52,15 +53,7 @@ function savedExportOpt<T>(key: string, fallback: T): T {
   }
 }
 
-function progressLabel(p: number): string {
-  if (p < 15)  return '缩放图像…'
-  if (p < 70)  return '匹配珠子色…'
-  if (p < 90)  return '清理边缘…'
-  if (p < 100) return '整理用色…'
-  return '完成！'
-}
-
-type Stage = 'loading' | 'params' | 'converting' | 'editing'
+type Stage = 'loading' | 'params' | 'editing'
 
 // 存盘时重画首页卡片用的缩略图；空画板不生成，首页继续显示占位图。
 // 色板按图纸自己的品牌取，不依赖页面当前状态（重新转换换品牌时两者会短暂不一致）。
@@ -81,7 +74,6 @@ export default function EditorPage() {
 
   const [stage, setStage]               = useState<Stage>('loading')
   const [brandColors, setBrandColors]   = useState<BeadColor[]>([])
-  const [progress, setProgress]         = useState(0)
   const [showMaterials, setShowMaterials] = useState(false)
   const [showStickers, setShowStickers] = useState(false)
   const [makingPattern, setMakingPattern] = useState<Pattern | null>(null)
@@ -97,7 +89,9 @@ export default function EditorPage() {
 
   const [showGridRef, setShowGridRef]                   = useState(false)
   const [showReconvert, setShowReconvert]               = useState(false)
-  const [showConvertConfirm, setShowConvertConfirm]     = useState(false)
+  const [reconverting, setReconverting]                 = useState(false)
+  const [adopting, setAdopting]                         = useState(false)
+  const [previewOriginal, setPreviewOriginal]           = useState(false)
   const [showRemoveBgConfirm, setShowRemoveBgConfirm]   = useState(false)
 
   const [showExport,      setShowExport]      = useState(false)
@@ -306,14 +300,6 @@ export default function EditorPage() {
     navigate(-1)
   }
 
-  // ─── 确认条自动消失 ─────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!showConvertConfirm) return
-    const t = setTimeout(() => setShowConvertConfirm(false), 6000)
-    return () => clearTimeout(t)
-  }, [showConvertConfirm])
-
   // ─── 键盘快捷键（编辑阶段）────────────────────────────────────────
   // Ctrl/Cmd+Z 撤销 · Ctrl/Cmd+Shift+Z / Ctrl+Y 重做 · B/E/F/I 切换工具 · Esc 关闭浮层
 
@@ -346,7 +332,6 @@ export default function EditorPage() {
         else if (showExport && !exporting) setShowExport(false)
         else if (showReconvert) setShowReconvert(false)
         else if (showMaterials) setShowMaterials(false)
-        else if (showConvertConfirm) setShowConvertConfirm(false)
         return
       }
 
@@ -360,39 +345,39 @@ export default function EditorPage() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [stage, comparisonParams, showStickers, makingPattern, showExport, showReconvert, showMaterials, showRemoveBgConfirm, showConvertConfirm, exporting, resolvingSave])
+  }, [stage, comparisonParams, showStickers, makingPattern, showExport, showReconvert, showMaterials, showRemoveBgConfirm, exporting, resolvingSave])
 
   // ─── 开始转换 ────────────────────────────────────────────────
 
   const conversionForm = { algorithm, mode, contourEnhance, subjectFocus, width: gridWidth, height: gridH, brandId, dithering, mergeThreshold }
 
-  const handleConvert = useCallback(async () => {
-    if (!imagePath) return
-    const dimensionError = validateGridDimensions(gridWidth, gridH)
-    if (dimensionError) {
-      showToast(dimensionError)
-      return
-    }
-    const basePattern = stage === 'editing' ? usePatternStore.getState().pattern : null
-    setStage('converting')
-    setProgress(0)
+  // 参数页：参数一变就刷新预览。开着抖动时大图要算更久，等用户停手再算
+  const dimensionError = validateGridDimensions(gridWidth, gridH)
+  const live = useLivePreview(
+    imagePath ?? null,
+    stage === 'params' && !dimensionError ? buildConvertParams(conversionForm) : null,
+    dithering ? 600 : 200,
+  )
 
-    const params = buildConvertParams(conversionForm)
-
+  // 编辑器里的「重新转换」：会覆盖当前图纸，所以仍由按钮触发
+  const handleReconvert = useCallback(async () => {
+    const basePattern = usePatternStore.getState().pattern
+    if (!imagePath || !basePattern) return
+    const error = validateGridDimensions(gridWidth, gridH)
+    if (error) { showToast(error); return }
+    setReconverting(true)
     try {
-      const convertedPattern = await convert(imagePath, params, (p) => setProgress(p), basePattern, basePattern ? persistPattern : undefined)
-      if (!basePattern) saveSession.current = new PatternSaveSession(convertedPattern, savePattern, saveThumbnail)
+      const convertedPattern = await convert(imagePath, buildConvertParams(conversionForm), undefined, basePattern, persistPattern)
       const brand = await loadBrand(convertedPattern.brandId)
       setBrandColors(brand.colors)
       setSelectedSystem(getColorSystemForBrand(convertedPattern.brandId) ?? 'MARD')
-      setStage('editing')
-      setShowConvertConfirm(true)
+      setShowReconvert(false)
+      showToast('已按新设置重新转换')
     } catch (e: any) {
       if (e instanceof ConversionCancelledError) return
       showToast(e.message ?? '转换失败，请重试')
-      setStage(basePattern ? 'editing' : 'params')
-    }
-  }, [imagePath, gridWidth, gridH, brandId, algorithm, contourEnhance, subjectFocus, mergeThreshold, mode, dithering, convert, stage])
+    } finally { setReconverting(false) }
+  }, [imagePath, gridWidth, gridH, brandId, algorithm, contourEnhance, subjectFocus, mergeThreshold, mode, dithering, convert, persistPattern])
 
   const openComparison = () => {
     const error = validateGridDimensions(gridWidth, gridH)
@@ -401,7 +386,7 @@ export default function EditorPage() {
     setShowReconvert(false)
   }
 
-  const adoptComparison = async (result: ConversionPreview, colors: BeadColor[], params: ConvertParams) => {
+  const adoptResult = async (result: ConversionPreview, colors: BeadColor[], params: ConvertParams) => {
     clearTimeout(saveTimer.current)
     const base = stage === 'editing' ? pattern : null
     const thumbnail = await generateThumbnail(result.grid, params.width, params.height, result.paletteUsed, colors)
@@ -430,10 +415,14 @@ export default function EditorPage() {
     navigate('/')
   }
 
-  const handleCancel = useCallback(() => {
-    cancel()
-    navigate(-1)
-  }, [cancel, navigate])
+  // 参数页的「用这张图纸」：把当前预览存成图纸并进入编辑器
+  const adoptPreview = async () => {
+    if (!live.fresh || !live.preview || adopting) return
+    setAdopting(true)
+    try { await adoptResult(live.preview.result, live.preview.colors, live.preview.params) }
+    catch (e) { showToast(e instanceof Error ? e.message : '保存失败，请重试') }
+    finally { setAdopting(false) }
+  }
 
   // ─── 导入底图 ────────────────────────────────────────────────
 
@@ -558,12 +547,15 @@ export default function EditorPage() {
 
   if (comparisonParams && imagePath) {
     return <AlgorithmComparison imagePath={imagePath} params={comparisonParams}
-      onClose={() => setComparisonParams(null)} onUse={adoptComparison} onKeepBoth={keepBothComparisons} />
+      onClose={() => setComparisonParams(null)} onUse={adoptResult} onKeepBoth={keepBothComparisons} />
   }
 
   if (stage === 'params') {
     const wCm = (gridWidth * BEAD_MM / 10).toFixed(1)
     const hCm = (gridH     * BEAD_MM / 10).toFixed(1)
+    const previewStatus = dimensionError ?? live.error ?? (live.preview
+      ? `${live.preview.stats.colors} 种颜色 · ${live.preview.stats.beads} 粒${live.pending ? ' · 更新中…' : ''}`
+      : '正在生成预览…')
     return (
       <div className="editor-page editor-page--dark">
         <div className="editor-topbar">
@@ -577,13 +569,24 @@ export default function EditorPage() {
           <div style={{ width: 52 }} />
         </div>
 
-        <div className="params-body">
-          {imagePath && (
-            <div className="params-preview">
-              <img className="params-preview__img" src={imagePath} style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }} alt="" />
+        <div className="params-layout">
+          <div className="params-preview">
+            <div className="params-preview__stage">
+              {imagePath && (previewOriginal || !live.preview
+                ? <img className="params-preview__img" src={imagePath} alt="原图" />
+                : <img className={`params-preview__img params-preview__img--pattern${live.pending ? ' params-preview__img--stale' : ''}`}
+                    src={live.preview.image} alt="图纸预览" />)}
             </div>
-          )}
+            <div className="params-preview__bar">
+              <div className="params-preview__tabs">
+                <Button className="params-preview__tab" aria-pressed={!previewOriginal} onClick={() => setPreviewOriginal(false)}>图纸</Button>
+                <Button className="params-preview__tab" aria-pressed={previewOriginal} onClick={() => setPreviewOriginal(true)}>原图</Button>
+              </div>
+              <span className="params-preview__stats" role="status">{previewStatus}</span>
+            </div>
+          </div>
 
+          <div className="params-body">
           <ConvertParamsForm
             algorithm={algorithm} setAlgorithm={setAlgorithm} onCompare={openComparison}
             subjectFocus={subjectFocus} setSubjectFocus={setSubjectFocus}
@@ -599,45 +602,16 @@ export default function EditorPage() {
             setMode={setMode}
             dithering={dithering}
             setDithering={setDithering}
-            sizeLabel={`${gridWidth}×${gridH} 格 · ${gridWidth * gridH} 粒 · ${wCm}×${hCm} cm`}
+            sizeLabel={`${gridWidth}×${gridH} 格 · ${wCm}×${hCm} cm`}
           />
+          </div>
         </div>
 
         <div className="params-footer">
-          <Button className="params-convert-btn" onClick={handleConvert}>
-            <span className="params-convert-btn__text">开始转换</span>
+          <Button className="params-convert-btn" disabled={!live.fresh || adopting} onClick={() => void adoptPreview()}>
+            <span className="params-convert-btn__text">{adopting ? '正在保存…' : live.fresh ? '用这张图纸 ›' : dimensionError || live.error ? '无法生成预览' : '正在生成预览…'}</span>
           </Button>
         </div>
-      </div>
-    )
-  }
-
-  if (stage === 'converting') {
-    const arcDeg = progress * 3.6
-    return (
-      <div className="editor-page editor-converting">
-        <div className="converting__title-row">
-        <span className="converting__title">正在转换</span>
-        <span className="topbar-step-badge">步骤 3/3</span>
-      </div>
-        {imagePath && (
-          <img className="converting__thumb" src={imagePath} alt="正在转换的原图" />
-        )}
-        <div
-          className="converting__ring-outer"
-          style={{ background: `conic-gradient(from -90deg, #F0874E ${arcDeg}deg, var(--border) 0deg)` }}
-        >
-          <div className="converting__ring-inner">
-            <span className="converting__pct">{Math.round(progress)}%</span>
-            <span className="converting__step-inline">{progressLabel(progress)}</span>
-          </div>
-        </div>
-        <div className="converting__bar-wrap">
-          <div className="converting__bar-fill" style={{ width: `${progress}%` }} />
-        </div>
-        <Button className="converting__cancel" onClick={handleCancel}>
-          <span className="converting__cancel-text">取消</span>
-        </Button>
       </div>
     )
   }
@@ -771,23 +745,6 @@ export default function EditorPage() {
           </div>
         </section>}
         <div className="editor-canvas">
-          {showConvertConfirm && (
-            <div className="convert-confirm-bar">
-              <span className="convert-confirm-bar__text">对效果满意吗？</span>
-              <Button
-                className="convert-confirm-bar__btn convert-confirm-bar__btn--secondary"
-                onClick={() => { setShowConvertConfirm(false); setShowReconvert(true) }}
-              >
-                调整重来
-              </Button>
-              <Button
-                className="convert-confirm-bar__btn convert-confirm-bar__btn--primary"
-                onClick={() => setShowConvertConfirm(false)}
-              >
-                开始编辑
-              </Button>
-            </div>
-          )}
           {isDrawMode && selectedColorRgb && (
             <div className="canvas-brush-indicator">
               <div
@@ -837,7 +794,8 @@ export default function EditorPage() {
               dithering,
               setDithering,
               sizeLabel: `${gridWidth}×${gridH} 格 · ${gridWidth * gridH} 粒 · ${(gridWidth * BEAD_MM / 10).toFixed(1)}×${(gridH * BEAD_MM / 10).toFixed(1)} cm`,
-              onReconvert: handleConvert,
+              onReconvert: () => void handleReconvert(),
+              reconverting,
             } satisfies ParamsTabProps) : undefined}
           />
         )}
@@ -871,7 +829,7 @@ export default function EditorPage() {
                 setMode={setMode}
                 dithering={dithering}
                 setDithering={setDithering}
-                sizeLabel={`${gridWidth}×${gridH} 格 · ${gridWidth * gridH} 粒 · ${(gridWidth * BEAD_MM / 10).toFixed(1)}×{(gridH * BEAD_MM / 10).toFixed(1)} cm`}
+                sizeLabel={`${gridWidth}×${gridH} 格 · ${gridWidth * gridH} 粒 · ${(gridWidth * BEAD_MM / 10).toFixed(1)}×${(gridH * BEAD_MM / 10).toFixed(1)} cm`}
               />
 
               {/* 后处理操作 — 破坏性，视觉隔离 */}
@@ -889,8 +847,8 @@ export default function EditorPage() {
             </div>
 
             <div className="reconvert-footer">
-              <Button className="params-convert-btn" onClick={() => { setShowReconvert(false); handleConvert() }}>
-                <span className="params-convert-btn__text">重新转换</span>
+              <Button className="params-convert-btn" disabled={reconverting} onClick={() => void handleReconvert()}>
+                <span className="params-convert-btn__text">{reconverting ? '转换中…' : '重新转换'}</span>
               </Button>
             </div>
           </div>
