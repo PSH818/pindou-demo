@@ -18,7 +18,8 @@ import { ConversionCancelledError, usePattern } from '../../hooks/usePattern'
 import { getColorSystemForBrand, loadBrand } from '../../utils/palette'
 import { getPattern, savePattern, saveNewPatterns } from '../../utils/storage'
 import { PatternSaveSession, PatternConflictError, clonePattern } from '../../utils/patternPersistence'
-import { ALGORITHM_LABELS, conversionMetadata, readPreferredAlgorithm, rememberAlgorithm, algorithmFamily, resolveConversionAlgorithm, readContourPreference, rememberContourPreference } from '../../utils/conversionSettings'
+import { ALGORITHM_LABELS, buildConvertParams, patternFromConversion, readPreferredAlgorithm, rememberAlgorithm, algorithmFamily, readContourPreference, rememberContourPreference } from '../../utils/conversionSettings'
+import { countByColorId, excludeColor, removeEdgeBackground } from '../../utils/patternOps'
 import { generateThumbnail, suggestGridSize } from '../../utils/imageLoader'
 import { showToast, showPrompt, showModal, pickImageFile, getImageDimensions, revokeObjectUrl } from '../../utils/webUtils'
 import { useRevokeOnUnmount } from '../../hooks/useRevokeOnUnmount'
@@ -363,6 +364,8 @@ export default function EditorPage() {
 
   // ─── 开始转换 ────────────────────────────────────────────────
 
+  const conversionForm = { algorithm, mode, contourEnhance, subjectFocus, width: gridWidth, height: gridH, brandId, dithering, mergeThreshold }
+
   const handleConvert = useCallback(async () => {
     if (!imagePath) return
     const dimensionError = validateGridDimensions(gridWidth, gridH)
@@ -374,18 +377,7 @@ export default function EditorPage() {
     setStage('converting')
     setProgress(0)
 
-    const params: ConvertParams = {
-      algorithm: resolveConversionAlgorithm(algorithm, mode, contourEnhance),
-      contourEnhance: algorithm !== 'legacy' && mode === 'dominant' && contourEnhance,
-      subjectFocus: algorithm !== 'legacy' && subjectFocus,
-      width:      gridWidth,
-      height:     gridH,
-      brandId,
-      dithering,
-      edgeEnhance: true,
-      mergeThreshold,
-      mode,
-    }
+    const params = buildConvertParams(conversionForm)
 
     try {
       const convertedPattern = await convert(imagePath, params, (p) => setProgress(p), basePattern, basePattern ? persistPattern : undefined)
@@ -405,7 +397,7 @@ export default function EditorPage() {
   const openComparison = () => {
     const error = validateGridDimensions(gridWidth, gridH)
     if (error) { showToast(error); return }
-    setComparisonParams({ algorithm: resolveConversionAlgorithm(algorithm, mode, contourEnhance), contourEnhance: algorithm !== 'legacy' && mode === 'dominant' && contourEnhance, subjectFocus: algorithm !== 'legacy' && subjectFocus, width: gridWidth, height: gridH, brandId, mode, dithering, mergeThreshold, edgeEnhance: true })
+    setComparisonParams(buildConvertParams(conversionForm))
     setShowReconvert(false)
   }
 
@@ -413,13 +405,8 @@ export default function EditorPage() {
     clearTimeout(saveTimer.current)
     const base = stage === 'editing' ? pattern : null
     const thumbnail = await generateThumbnail(result.grid, params.width, params.height, result.paletteUsed, colors)
-    const chosen: Pattern = {
-      id: base?.id ?? nanoid(8), name: base?.name ?? '新图纸',
-      width: params.width, height: params.height, brandId: params.brandId,
-      ...conversionMetadata(params, result.algorithm),
-      grid: new Uint16Array(result.grid), paletteUsed: [...result.paletteUsed], thumbnail,
-      createdAt: base?.createdAt ?? Date.now(), updatedAt: Date.now(),
-    }
+    const chosen = patternFromConversion(result, params,
+      { id: base?.id ?? nanoid(8), name: base?.name ?? '新图纸', createdAt: base?.createdAt }, thumbnail, result.algorithm)
     if (base) await persistPattern(chosen)
     else { await savePattern(chosen); saveSession.current = new PatternSaveSession(chosen, savePattern, saveThumbnail) }
     rememberAlgorithm(result.algorithm)
@@ -435,15 +422,9 @@ export default function EditorPage() {
 
   const keepBothComparisons = async (results: ConversionPreview[], colors: BeadColor[], params: ConvertParams) => {
     const name = stage === 'editing' ? pattern?.name ?? '新图纸' : '新图纸'
-    const now = Date.now()
-    const versions = await Promise.all(results.map(async result => ({
-      id: nanoid(8), name: `${name} · ${ALGORITHM_LABELS[result.algorithm]}`,
-      width: params.width, height: params.height, brandId: params.brandId,
-      ...conversionMetadata(params, result.algorithm),
-      grid: new Uint16Array(result.grid), paletteUsed: [...result.paletteUsed],
-      thumbnail: await generateThumbnail(result.grid, params.width, params.height, result.paletteUsed, colors),
-      createdAt: now, updatedAt: now,
-    })))
+    const versions = await Promise.all(results.map(async result => patternFromConversion(result, params,
+      { id: nanoid(8), name: `${name} · ${ALGORITHM_LABELS[result.algorithm]}` },
+      await generateThumbnail(result.grid, params.width, params.height, result.paletteUsed, colors), result.algorithm)))
     await saveNewPatterns(versions)
     showToast('两个版本已保存，原有图纸未覆盖')
     navigate('/')
@@ -470,56 +451,9 @@ export default function EditorPage() {
 
   const handleRemoveBg = useCallback(() => {
     if (!pattern) return
-    const { grid, width, height, paletteUsed } = pattern
-
-    const borderCounts: Record<number, number> = {}
-    for (let x = 0; x < width; x++) {
-      const t = grid[x], b = grid[(height - 1) * width + x]
-      if (t !== TRANSPARENT) borderCounts[t] = (borderCounts[t] ?? 0) + 1
-      if (b !== TRANSPARENT) borderCounts[b] = (borderCounts[b] ?? 0) + 1
-    }
-    for (let y = 1; y < height - 1; y++) {
-      const l = grid[y * width], r = grid[y * width + width - 1]
-      if (l !== TRANSPARENT) borderCounts[l] = (borderCounts[l] ?? 0) + 1
-      if (r !== TRANSPARENT) borderCounts[r] = (borderCounts[r] ?? 0) + 1
-    }
-    let bgIdx = -1, maxCnt = 0
-    for (const k of Object.keys(borderCounts)) {
-      const n = borderCounts[+k]
-      if (n > maxCnt) { maxCnt = n; bgIdx = +k }
-    }
-    if (bgIdx === -1) return
-
-    const newGrid = new Uint16Array(grid)
-    const visited = new Uint8Array(width * height)
-    const stack: number[] = []
-    const seedIfBg = (idx: number) => {
-      if (newGrid[idx] === bgIdx && !visited[idx]) { visited[idx] = 1; stack.push(idx) }
-    }
-    for (let x = 0; x < width; x++) { seedIfBg(x); seedIfBg((height - 1) * width + x) }
-    for (let y = 1; y < height - 1; y++) { seedIfBg(y * width); seedIfBg(y * width + width - 1) }
-
-    while (stack.length > 0) {
-      const idx = stack.pop()!
-      newGrid[idx] = TRANSPARENT
-      const cx = idx % width, cy = (idx - cx) / width
-      if (cx > 0)          seedIfBg(idx - 1)
-      if (cx < width - 1)  seedIfBg(idx + 1)
-      if (cy > 0)          seedIfBg(idx - width)
-      if (cy < height - 1) seedIfBg(idx + width)
-    }
-
-    const usedSet = new Set<number>()
-    for (const v of newGrid) { if (v !== TRANSPARENT) usedSet.add(v) }
-    const oldToNew = new Map<number, number>()
-    const newPaletteUsed: number[] = []
-    for (let i = 0; i < paletteUsed.length; i++) {
-      if (usedSet.has(i)) { oldToNew.set(i, newPaletteUsed.length); newPaletteUsed.push(paletteUsed[i]) }
-    }
-    for (let k = 0; k < newGrid.length; k++) {
-      if (newGrid[k] !== TRANSPARENT) newGrid[k] = oldToNew.get(newGrid[k])!
-    }
-    applyGridAndPalette(newGrid, newPaletteUsed)
+    const result = removeEdgeBackground(pattern.grid, pattern.width, pattern.height, pattern.paletteUsed)
+    if (!result) return
+    applyGridAndPalette(result.grid, result.paletteUsed)
     showToast('已去除背景，可撤销')
   }, [pattern, applyGridAndPalette])
 
@@ -589,60 +523,21 @@ export default function EditorPage() {
 
   const applyExclusion = useCallback((excludedColorId: number) => {
     if (!pattern) return
-    const colorById = new Map(brandColors.map(c => [c.id, c]))
-    const n         = pattern.paletteUsed.length
-    const exIdx     = pattern.paletteUsed.indexOf(excludedColorId)
-    if (exIdx === -1) return
-    const srcColor = colorById.get(excludedColorId)
-    if (!srcColor) return
-
-    let minDist = Infinity, bestIdx = -1
-    for (let j = 0; j < n; j++) {
-      if (j === exIdx) continue
-      const tgt = colorById.get(pattern.paletteUsed[j])
-      if (!tgt) continue
-      const [L1, a1, b1] = srcColor.lab
-      const [L2, a2, b2] = tgt.lab
-      const d = (L1 - L2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2
-      if (d < minDist) { minDist = d; bestIdx = j }
-    }
-    if (bestIdx === -1) return
-
-    const newGrid = new Uint16Array(pattern.grid.length)
-    for (let k = 0; k < pattern.grid.length; k++) {
-      const v    = pattern.grid[k]
-      newGrid[k] = v === TRANSPARENT ? TRANSPARENT : v === exIdx ? bestIdx : v
-    }
-    const usedSet = new Set<number>()
-    for (const v of newGrid) { if (v !== TRANSPARENT) usedSet.add(v) }
-    const oldToNew = new Map<number, number>()
-    const newPaletteUsed: number[] = []
-    for (let i = 0; i < n; i++) {
-      if (usedSet.has(i)) { oldToNew.set(i, newPaletteUsed.length); newPaletteUsed.push(pattern.paletteUsed[i]) }
-    }
-    for (let k = 0; k < newGrid.length; k++) {
-      if (newGrid[k] !== TRANSPARENT) newGrid[k] = oldToNew.get(newGrid[k])!
-    }
-    applyGridAndPalette(newGrid, newPaletteUsed)
-    showToast(`已排除 ${srcColor.code}，可撤销`)
+    const result = excludeColor(pattern.grid, pattern.paletteUsed, excludedColorId, brandColors)
+    if (!result) return
+    applyGridAndPalette(result.grid, result.paletteUsed)
+    showToast(`已排除 ${result.excluded.code}，可撤销`)
   }, [pattern, brandColors, applyGridAndPalette])
 
   // ─── 用料清单数据 ────────────────────────────────────────────
 
   const colorById = new Map(brandColors.map(c => [c.id, c]))
-  const materials = (() => {
-    if (!pattern) return []
-    const cm = new Map<number, number>()
-    for (const idx of pattern.grid) {
-      if (idx === TRANSPARENT) continue
-      const id = pattern.paletteUsed[idx]
-      cm.set(id, (cm.get(id) ?? 0) + 1)
-    }
-    return [...cm.entries()]
-      .map(([id, count]) => ({ color: colorById.get(id), count }))
-      .filter(i => i.color)
-      .sort((a, b) => b.count - a.count)
-  })()
+  const materials = pattern
+    ? [...countByColorId(pattern.grid, pattern.paletteUsed)]
+        .map(([id, count]) => ({ color: colorById.get(id), count }))
+        .filter(i => i.color)
+        .sort((a, b) => b.count - a.count)
+    : []
   const totalBeads = materials.reduce((s, i) => s + i.count, 0)
 
   // ─── 渲染 ─────────────────────────────────────────────────────

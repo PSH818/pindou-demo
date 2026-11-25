@@ -5,7 +5,7 @@
 
 import type { Pattern, BeadColor } from '../types'
 import { renderFull } from '../components/PatternCanvas/renderer'
-import { TRANSPARENT } from '../types'
+import { countByColorId } from './patternOps'
 import { showToast, downloadBlob } from './webUtils'
 import { assertGridDimensions, assertSafeExportCanvas } from './patternLimits'
 
@@ -41,14 +41,8 @@ interface LegendItem {
 // ─── 图例数据 ─────────────────────────────────────────────────
 
 export function buildLegendItems(pattern: Pattern, brandColors: BeadColor[]): LegendItem[] {
-  const byId   = new Map(brandColors.map(c => [c.id, c]))
-  const counts = new Map<number, number>()
-  for (const v of pattern.grid) {
-    if (v === TRANSPARENT) continue
-    const id = pattern.paletteUsed[v]
-    counts.set(id, (counts.get(id) ?? 0) + 1)
-  }
-  return [...counts.entries()]
+  const byId = new Map(brandColors.map(c => [c.id, c]))
+  return [...countByColorId(pattern.grid, pattern.paletteUsed)]
     .map(([id, count]) => {
       const c = byId.get(id)
       return c ? { rgb: c.rgb, code: c.code, count } : null

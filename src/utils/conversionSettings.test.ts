@@ -64,3 +64,30 @@ test('preference defaults safely and remembers only explicit writes', () => {
     else delete globalThis.localStorage
   }
 })
+
+test('表单转参数：经典模式关掉轮廓增强和主体优先，轮廓增强只在卡通主色下生效', async () => {
+  const { buildConvertParams } = await import('./conversionSettings.ts')
+  const form = { algorithm: 'perceptual-v1', mode: 'dominant', contourEnhance: true, subjectFocus: true,
+    width: 40, height: 30, brandId: 'mard', dithering: false, mergeThreshold: 30 }
+  assert.deepEqual(buildConvertParams(form), { algorithm: 'cartoon-v1', contourEnhance: true, subjectFocus: true,
+    width: 40, height: 30, brandId: 'mard', dithering: false, edgeEnhance: true, mergeThreshold: 30, mode: 'dominant' })
+  const realistic = buildConvertParams({ ...form, mode: 'average' })
+  assert.equal(realistic.algorithm, 'perceptual-v1'); assert.equal(realistic.contourEnhance, false); assert.equal(realistic.subjectFocus, true)
+  const classic = buildConvertParams({ ...form, algorithm: 'legacy' })
+  assert.equal(classic.algorithm, 'legacy'); assert.equal(classic.contourEnhance, false); assert.equal(classic.subjectFocus, false)
+})
+
+test('转换结果转图纸：新图纸用新身份，重新转换保留原 id、名称和创建时间，且不共享数组', async () => {
+  const { patternFromConversion } = await import('./conversionSettings.ts')
+  const result = { grid: new Uint16Array([0, 1, 65535, 0]), paletteUsed: [7, 9] }
+  const params = { algorithm: 'perceptual-v1', width: 2, height: 2, brandId: 'mard', dithering: false, edgeEnhance: true, mergeThreshold: 30, mode: 'average' }
+  const fresh = patternFromConversion(result, params, { id: 'new', name: '新图纸' }, 'thumb')
+  assert.equal(fresh.id, 'new'); assert.equal(fresh.width, 2); assert.equal(fresh.brandId, 'mard'); assert.equal(fresh.thumbnail, 'thumb')
+  assert.equal(fresh.conversionAlgorithm, 'perceptual-v1'); assert.equal(fresh.conversionVersion, 'perceptual-1')
+  assert.equal(fresh.createdAt, fresh.updatedAt)
+  assert.deepEqual(Array.from(fresh.grid), [0, 1, 65535, 0]); assert.deepEqual(fresh.paletteUsed, [7, 9])
+  assert.notEqual(fresh.grid, result.grid); assert.notEqual(fresh.paletteUsed, result.paletteUsed)
+  const redo = patternFromConversion(result, params, { id: 'old', name: '我的图', createdAt: 5 }, '', 'legacy')
+  assert.equal(redo.id, 'old'); assert.equal(redo.name, '我的图'); assert.equal(redo.createdAt, 5); assert.ok(redo.updatedAt > 5)
+  assert.equal(redo.conversionAlgorithm, 'legacy'); assert.equal(redo.conversionParams.algorithm, 'legacy')
+})

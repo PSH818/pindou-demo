@@ -1,5 +1,6 @@
-import { TRANSPARENT, type BeadColor, type ConvertParams, type ConversionAlgorithm, type WorkerResponse } from '../types/index.ts'
+import { TRANSPARENT, type BeadColor, type ConvertParams, type ConversionAlgorithm } from '../types/index.ts'
 import { createOffscreenCanvas } from './canvasHelper'
+import { runConversion, type RawImage } from './conversionRunner'
 
 export { ALGORITHM_LABELS } from './conversionSettings'
 
@@ -10,56 +11,20 @@ export interface ConversionPreview {
   elapsedMs: number
 }
 
-/** Independent preview execution: no store or IndexedDB writes. */
-export function runPreview(
-  image: { data: ArrayBuffer; width: number; height: number },
+/** 对比用的独立预览：只跑转换并计时，不写 store 和 IndexedDB。 */
+export async function runPreview(
+  image: RawImage,
   params: ConvertParams,
   palette: BeadColor[],
   algorithm: ConversionAlgorithm,
   signal: AbortSignal,
   onProgress: (value: number) => void,
 ): Promise<ConversionPreview> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) { reject(new DOMException('已取消', 'AbortError')); return }
-    const start = performance.now()
-    const worker = algorithm === 'cartoon-v1'
-      ? new Worker(new URL('../workers/cartoonProcessor.js', import.meta.url), { type: 'module' })
-      : algorithm === 'perceptual-v1'
-      ? new Worker(new URL('../workers/faithfulProcessor.js', import.meta.url), { type: 'module' })
-      : new Worker(new URL('../workers/imageProcessor.js', import.meta.url), { type: 'module' })
-    const cleanup = () => {
-      clearTimeout(timer)
-      signal.removeEventListener('abort', abort)
-      worker.terminate()
-    }
-    const fail = (error: Error) => { cleanup(); reject(error) }
-    const abort = () => fail(new DOMException('已取消', 'AbortError'))
-    const timer = setTimeout(() => fail(new Error('对比计算超时，请缩小图纸后重试')), 120_000)
-    signal.addEventListener('abort', abort, { once: true })
-    worker.onerror = () => fail(new Error('对比计算失败，请重试'))
-    worker.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
-      if (data.type === 'progress') { onProgress(data.progress ?? 0); return }
-      if (data.type === 'error') { fail(new Error(data.error ?? '转换失败')); return }
-      if (data.type !== 'result') return
-      const validIds = new Set(palette.map(color => color.id))
-      if (!(data.grid instanceof ArrayBuffer) || data.grid.byteLength !== params.width * params.height * 2 ||
-          !Array.isArray(data.paletteUsed) || data.paletteUsed.some(id => !validIds.has(id))) {
-        fail(new Error('对比返回的图纸数据无效')); return
-      }
-      const grid = new Uint16Array(data.grid)
-      if (grid.some(index => index !== TRANSPARENT && index >= data.paletteUsed!.length)) {
-        fail(new Error('对比返回的色号索引无效')); return
-      }
-      cleanup()
-      resolve({ algorithm, grid, paletteUsed: data.paletteUsed, elapsedMs: performance.now() - start })
-    }
-    // Each worker receives its own copy of the identical preprocessed bytes.
-    const buffer = image.data.slice(0)
-    try {
-      worker.postMessage({ type: 'convert', imageData: buffer, imageWidth: image.width,
-        imageHeight: image.height, params: { ...params, algorithm }, palette }, [buffer])
-    } catch (error) { fail(error instanceof Error ? error : new Error(String(error))) }
-  })
+  const start = performance.now()
+  // 两种算法各拿一份相同的像素拷贝（缓冲区会被转移给 Worker）
+  const result = await runConversion({ ...image, data: image.data.slice(0) }, { ...params, algorithm }, palette,
+    { signal, onProgress, timeoutMs: 120_000 })
+  return { algorithm, ...result, elapsedMs: performance.now() - start }
 }
 
 export function previewImage(preview: ConversionPreview, w: number, h: number, colors: BeadColor[]): string {

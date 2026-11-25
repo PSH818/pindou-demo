@@ -1,16 +1,14 @@
 import { TRANSPARENT, type Pattern, type BeadColor, type MaterialItem } from '../types/index.ts'
 import type { BoardTile, MakingProgress, PrintOptions } from '../types/making.ts'
 import { assertGridDimensions } from './patternLimits.ts'
+import { countByColorId } from './patternOps.ts'
 
 export function materialItems(pattern: Pattern, colors: BeadColor[]): MaterialItem[] {
   assertGridDimensions(pattern.width, pattern.height)
   if (pattern.grid.length !== pattern.width * pattern.height) throw new Error('图纸格数与尺寸不符')
-  const byId = new Map(colors.map(c => [c.id, c])), counts = new Map<number, number>()
-  for (const value of pattern.grid) {
-    if (value === TRANSPARENT) continue
-    const id = pattern.paletteUsed[value]
+  const byId = new Map(colors.map(c => [c.id, c])), counts = countByColorId(pattern.grid, pattern.paletteUsed)
+  for (const id of counts.keys()) {
     if (!byId.has(id)) throw new Error('图纸包含未知色号，无法准确统计用料')
-    counts.set(id, (counts.get(id) ?? 0) + 1)
   }
   return [...counts].map(([colorId, count]) => ({ ...byId.get(colorId)!, colorId, count }))
     .sort((a, b) => b.count - a.count || a.colorId - b.colorId)

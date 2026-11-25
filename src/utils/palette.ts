@@ -1,15 +1,12 @@
 /**
- * 品牌色板加载与用料清单计算
+ * 品牌色板加载
  */
 
 import {
-  TRANSPARENT,
   type BrandId,
   type BeadBrand,
   type BeadColor,
   type ColorSystem,
-  type Pattern,
-  type MaterialItem,
 } from '../types/index.ts'
 
 export interface BrandOption {
@@ -77,36 +74,4 @@ export async function loadBrand(brandId: BrandId): Promise<BeadBrand> {
   }
   _cache.set(brandId, brand)
   return brand
-}
-
-/** 根据图纸计算用料清单（按用量降序） */
-export function calcMaterials(pattern: Pattern, allColors: BeadColor[]): MaterialItem[] {
-  const countMap = new Map<number, number>()
-
-  for (let i = 0; i < pattern.grid.length; i++) {
-    const idx = pattern.grid[i]
-    if (idx === TRANSPARENT) continue
-    const colorId = pattern.paletteUsed[idx]
-    countMap.set(colorId, (countMap.get(colorId) ?? 0) + 1)
-  }
-
-  const colorById = new Map(allColors.map(c => [c.id, c]))
-
-  return Array.from(countMap.entries())
-    .map(([colorId, count]) => {
-      const color = colorById.get(colorId)!
-      return { colorId, code: color.code, name: color.name, rgb: color.rgb, count }
-    })
-    .sort((a, b) => b.count - a.count)
-}
-
-/** 生成可复制的购物清单文本 */
-export function formatMaterialText(items: MaterialItem[], patternName: string): string {
-  const lines = [`【${patternName}】用料清单`, '']
-  for (const item of items) {
-    lines.push(`${item.code} ${item.name}  ×${item.count}粒`)
-  }
-  const total = items.reduce((s, i) => s + i.count, 0)
-  lines.push('', `合计：${total} 粒`)
-  return lines.join('\n')
 }

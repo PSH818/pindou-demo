@@ -1,4 +1,4 @@
-import type { ConversionAlgorithm, ConvertParams } from '../types/index.ts'
+import type { ConversionAlgorithm, ConvertParams, Pattern } from '../types/index.ts'
 
 export const ALGORITHM_LABELS: Record<ConversionAlgorithm, string> = {
   legacy: '经典模式',
@@ -48,5 +48,59 @@ export function conversionMetadata(params: ConvertParams, algorithm = params.alg
       ...(params.subjectFocus !== undefined ? { subjectFocus: algorithm !== 'legacy' && params.subjectFocus } : {}),
       contourEnhance: algorithm === 'cartoon-v1' && params.mode === 'dominant',
     },
+  }
+}
+
+/** 参数表单里的选择。algorithm 只区分经典 / 保真两族，轮廓增强是单独的开关。 */
+export interface ConversionForm {
+  algorithm: ConversionAlgorithm
+  mode: ConvertParams['mode']
+  contourEnhance: boolean
+  subjectFocus: boolean
+  width: number
+  height: number
+  brandId: ConvertParams['brandId']
+  dithering: boolean
+  mergeThreshold: number
+}
+
+/** 表单 → Worker 参数。经典模式不支持轮廓增强和主体优先，轮廓增强只在卡通主色下生效。 */
+export function buildConvertParams(form: ConversionForm): ConvertParams {
+  const faithful = algorithmFamily(form.algorithm) !== 'legacy'
+  return {
+    algorithm: resolveConversionAlgorithm(form.algorithm, form.mode, form.contourEnhance),
+    contourEnhance: faithful && form.mode === 'dominant' && form.contourEnhance,
+    subjectFocus: faithful && form.subjectFocus,
+    width: form.width,
+    height: form.height,
+    brandId: form.brandId,
+    dithering: form.dithering,
+    edgeEnhance: true,
+    mergeThreshold: form.mergeThreshold,
+    mode: form.mode,
+  }
+}
+
+/** 转换结果 → 图纸对象。重新转换已有图纸时传入它的 id / name / createdAt 以保留身份。 */
+export function patternFromConversion(
+  result: { grid: Uint16Array; paletteUsed: number[] },
+  params: ConvertParams,
+  identity: { id: string; name: string; createdAt?: number },
+  thumbnail: string,
+  algorithm: ConversionAlgorithm = params.algorithm ?? 'legacy',
+): Pattern {
+  const now = Date.now()
+  return {
+    ...conversionMetadata(params, algorithm),
+    id: identity.id,
+    name: identity.name,
+    width: params.width,
+    height: params.height,
+    brandId: params.brandId,
+    paletteUsed: [...result.paletteUsed],
+    grid: result.grid.slice(),
+    thumbnail,
+    createdAt: identity.createdAt ?? now,
+    updatedAt: now,
   }
 }
