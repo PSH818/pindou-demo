@@ -10,7 +10,7 @@ import { locateChartGrid } from './gridLocate.js'
 
 const TRANSPARENT = 0xFFFF // Same no-bead sentinel as src/types/index.ts.
 
-// ─── 颜色工具（与 colorUtils.ts 保持一致）─────────────────────
+// ─── 颜色工具 ─────────────────────────────────────────────────
 
 function rgb2lab(r, g, b) {
   let rn = r / 255, gn = g / 255, bn = b / 255

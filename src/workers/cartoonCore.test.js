@@ -11,13 +11,11 @@ const request = (src, sw, sh, w, h, options = {}) => ({ imageData: src.buffer,
     dithering: false, mergeThreshold: 0, edgeEnhance: true, ...options } })
 const values = r => Array.from(r.grid, i => i === 65535 ? -1 : r.paletteUsed[i])
 
-test('经典和保真算法文件保持逐字节不变', () => {
+test('经典算法依赖和保真算法核心保持逐字节不变', () => {
   const hashes = {
-    'imageProcessor.js': '808014c3d8dbb7928a76d1a479fe6707a0e86499c5ac861315496eb9213efd99',
     'dither.js': '0ca586ac1b8f0400a4c216235e9b8ee7030608423f7124b2ad35cc23f04b5e3f',
     'colorMatch.js': '373704cf856b25520e172f488c14be84c41d9f93a012c0f7d6d741a9eace16cd',
     'perceptualCore.js': '7fbdd2f385df68aadcc2453929ca8138881ace270cc07d4cacae189d76639051',
-    'perceptualProcessor.js': '01e2ba8dd73a56acfaf92853f329640d0a466ab1f7d2efbb1673cb7c2f44e811',
   }
   for (const [file, hash] of Object.entries(hashes)) {
     assert.equal(createHash('sha256').update(readFileSync(new URL(file, import.meta.url))).digest('hex'), hash)

@@ -75,15 +75,6 @@ export interface ConvertParams {
 
 export type EditTool = 'brush' | 'fill' | 'eyedropper' | 'eraser'
 
-export interface EditorState {
-  tool: EditTool
-  selectedColorIdx: number        // paletteUsed 中的下标
-  scale: number                   // px/格，8~32
-  offsetX: number
-  offsetY: number
-  highlightColorIdx: number | null
-}
-
 // ─── 用料清单 ────────────────────────────────────────────────
 
 export interface MaterialItem {
@@ -113,20 +104,6 @@ export interface WorkerResponse {
   grid?: ArrayBuffer              // Uint16Array.buffer
   paletteUsed?: number[]
   error?: string
-}
-
-// ─── 导出参数 ────────────────────────────────────────────────
-
-export interface ExportImageOptions {
-  scale?: 16 | 32                 // 每格像素数，默认 16
-  showGrid?: boolean              // 默认 true
-  showNumbers?: boolean           // 默认 false（格子 ≥ 20px 时可启用）
-  showLegend?: boolean            // 默认 true
-}
-
-export interface ExportPdfOptions {
-  includeGrid: boolean
-  includeMaterials: boolean
 }
 
 export const TRANSPARENT = 0xFFFF  // grid 中表示"不放珠"的特殊值

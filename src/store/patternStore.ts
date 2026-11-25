@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { TRANSPARENT, type Pattern, type EditTool } from '../types'
+import { TRANSPARENT, type Pattern, type EditTool } from '../types/index.ts'
 
 // 撤销栈最大步数
 const MAX_HISTORY = 30
@@ -11,6 +11,11 @@ interface HistorySnapshot {
   paletteUsed: number[]
 }
 
+// 进行中的一笔（按下到抬起）。一笔只占一条撤销记录：
+// 第一格照常复制网格并入历史，之后的格子直接写进这份网格，
+// 不再逐格复制、逐格通知订阅者，画布自己按帧重绘，收笔时统一通知一次。
+let stroke: { grid: Uint16Array | null; paletteUsed: number[] | null; dirty: boolean } | null = null
+
 interface PatternStore {
   // 当前图纸
   pattern: Pattern | null
@@ -21,9 +26,6 @@ interface PatternStore {
   tool: EditTool
   selectedColorIdx: number    // paletteUsed 中的下标
   highlightColorIdx: number | null
-  scale: number               // px/格
-  offsetX: number
-  offsetY: number
   // 手绘模式：底图临时路径（不持久化）
   traceImagePath: string | null
   // 编辑器格线显示
@@ -33,6 +35,8 @@ interface PatternStore {
   // Actions
   setPattern: (p: Pattern) => void
   clearPattern: () => void
+  beginStroke: () => void
+  endStroke: () => void
   paintCell: (x: number, y: number) => void
   fillRegion: (x: number, y: number) => void
   eraseCell: (x: number, y: number) => void
@@ -43,8 +47,6 @@ interface PatternStore {
   setTool: (tool: EditTool) => void
   setSelectedColor: (idx: number) => void
   setHighlightColor: (idx: number | null) => void
-  setScale: (scale: number) => void
-  setOffset: (x: number, y: number) => void
   setTraceImage: (path: string | null) => void
   setSelectedColorById: (colorId: number) => void
   renamePattern: (name: string) => void
@@ -59,9 +61,6 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
   tool: 'brush',
   selectedColorIdx: 0,
   highlightColorIdx: null,
-  scale: 16,
-  offsetX: 0,
-  offsetY: 0,
   traceImagePath: null,
   showGuideLines: true,
   guideLinesColor: '#e53935',
@@ -81,13 +80,26 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
 
   clearPattern: () => set({ pattern: null, history: [], historyIndex: -1, highlightColorIdx: null }),
 
+  beginStroke: () => {
+    get().endStroke()
+    stroke = { grid: null, paletteUsed: null, dirty: false }
+  },
+
+  endStroke: () => {
+    const done = stroke
+    stroke = null
+    const { pattern } = get()
+    // 笔内后续格子是原地写入的，收笔时换一个新对象，让用料统计和自动保存看到最终结果
+    if (done?.dirty && pattern && pattern.grid === done.grid) {
+      set({ pattern: { ...pattern, updatedAt: Date.now() } })
+    }
+  },
+
   paintCell: (x, y) => {
     const { pattern, selectedColorIdx } = get()
     if (!pattern) return
     if (selectedColorIdx >= pattern.paletteUsed.length) return  // 手绘模式：未选色时不操作
-    const idx = y * pattern.width + x
-    if (pattern.grid[idx] === selectedColorIdx) return  // 无变化，不入历史
-    _updateGrid(get, set, (grid) => { grid[idx] = selectedColorIdx })
+    _setCell(get, set, y * pattern.width + x, selectedColorIdx)
   },
 
   fillRegion: (x, y) => {
@@ -113,9 +125,7 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
   eraseCell: (x, y) => {
     const { pattern } = get()
     if (!pattern) return
-    const idx = y * pattern.width + x
-    if (pattern.grid[idx] === TRANSPARENT) return
-    _updateGrid(get, set, (grid) => { grid[idx] = TRANSPARENT })
+    _setCell(get, set, y * pattern.width + x, TRANSPARENT)
   },
 
   pickColor: (x, y) => {
@@ -176,8 +186,6 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
     const paletteLen = get().pattern?.paletteUsed.length ?? 0
     set({ highlightColorIdx: idx !== null && Number.isInteger(idx) && idx >= 0 && idx < paletteLen ? idx : null })
   },
-  setScale: (scale) => set({ scale }),
-  setOffset: (x, y) => set({ offsetX: x, offsetY: y }),
 
   setTraceImage: (path) => set({ traceImagePath: path }),
 
@@ -200,6 +208,30 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
     set({ pattern: { ...pattern, name, updatedAt: Date.now() } })
   },
 }))
+
+// 辅助：改一格。不在笔内时每次调用占一条历史；笔内只有第一格入历史
+function _setCell(
+  get: () => PatternStore,
+  set: (partial: Partial<PatternStore>) => void,
+  idx: number,
+  value: number
+) {
+  const { pattern } = get()
+  if (!pattern || pattern.grid[idx] === value) return  // 无变化，不入历史
+
+  // 网格或色板被别的操作换掉（笔中途撤销、追加新颜色）时不能再原地写，重新起一条历史
+  if (stroke && stroke.grid === pattern.grid && stroke.paletteUsed === pattern.paletteUsed) {
+    pattern.grid[idx] = value
+    stroke.dirty = true
+    return
+  }
+
+  _updateGrid(get, set, (grid) => { grid[idx] = value })
+  if (stroke) {
+    const next = get().pattern!
+    stroke = { grid: next.grid, paletteUsed: next.paletteUsed, dirty: false }
+  }
+}
 
 // 辅助：修改 grid 并推入历史栈
 function _updateGrid(

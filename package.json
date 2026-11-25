@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/utils/patternLimits.test.ts src/utils/palette.test.ts src/utils/conversionSettings.test.ts src/utils/manualGridCount.test.ts src/utils/analyzeImageLoader.test.ts src/utils/sticker.test.ts src/utils/making.test.ts src/utils/patternPersistence.test.ts src/workers/perceptualCore.test.js src/workers/cartoonCore.test.js src/workers/flatBackground.test.js src/workers/gridCellSample.test.js src/workers/gridPeriod.test.js src/workers/gridLocate.test.js",
+    "test": "node --test src/utils/patternLimits.test.ts src/utils/palette.test.ts src/utils/conversionSettings.test.ts src/utils/manualGridCount.test.ts src/utils/analyzeImageLoader.test.ts src/utils/sticker.test.ts src/utils/making.test.ts src/utils/patternPersistence.test.ts src/store/patternStore.test.ts src/workers/imageProcessor.test.js src/workers/perceptualCore.test.js src/workers/cartoonCore.test.js src/workers/flatBackground.test.js src/workers/gridCellSample.test.js src/workers/gridPeriod.test.js src/workers/gridLocate.test.js",
     "check": "npm run typecheck && npm test && npm run build",
     "build": "vite build",
     "preview": "vite preview"

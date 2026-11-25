@@ -41,3 +41,18 @@ test('普通存储错误允许重试且使用原基线，不修改调用者对�
   await session.save(next)
   assert.equal(session.isDirty(next), false)
 })
+test('内容变了才重画缩略图；只打开不编辑不改写记录，缩略图差异不算未保存修改', async () => {
+  let stored = clonePattern(p), drawn = 0
+  const session = new PatternSaveSession(p, async (next, expected) => {
+    assert.equal(patternVersion(expected), patternVersion(stored))
+    stored = clonePattern(next)
+  }, async next => { drawn++; return `thumb:${Array.from(next.grid)}` })
+  await session.save(p)
+  assert.equal(drawn, 0); assert.equal(patternVersion(stored), patternVersion(p))
+  const edited = { ...p, grid: new Uint16Array([1, 1]) }
+  await session.save(edited)
+  assert.equal(stored.thumbnail, 'thumb:1,1'); assert.equal(edited.thumbnail, '', '不修改调用者对象')
+  assert.equal(session.isDirty(edited), false, '页面里的旧缩略图不算未保存')
+  await session.save(edited)
+  assert.equal(drawn, 1); assert.equal(stored.thumbnail, 'thumb:1,1', '旧缩略图不会被写回去')
+})

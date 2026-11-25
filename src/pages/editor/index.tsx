@@ -61,6 +61,16 @@ function progressLabel(p: number): string {
 
 type Stage = 'loading' | 'params' | 'converting' | 'editing'
 
+// 存盘时重画首页卡片用的缩略图；空画板不生成，首页继续显示占位图。
+// 色板按图纸自己的品牌取，不依赖页面当前状态（重新转换换品牌时两者会短暂不一致）。
+async function saveThumbnail(p: Pattern): Promise<string> {
+  if (!p.grid.some(v => v !== TRANSPARENT)) return ''
+  try {
+    const { colors } = await loadBrand(p.brandId)
+    return await generateThumbnail(p.grid, p.width, p.height, p.paletteUsed, colors)
+  } catch { return p.thumbnail }
+}
+
 export default function EditorPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -178,7 +188,7 @@ export default function EditorPage() {
         setBrandColors(brand.colors)
 
         if (targetPattern) {
-          saveSession.current = new PatternSaveSession(targetPattern, savePattern)
+          saveSession.current = new PatternSaveSession(targetPattern, savePattern, saveThumbnail)
           setSaveFailure(null)
           setAlgorithm(algorithmFamily(targetPattern.conversionAlgorithm))
           setContourState(targetPattern.conversionParams?.contourEnhance ?? targetPattern.conversionAlgorithm === 'cartoon-v1')
@@ -275,7 +285,7 @@ export default function EditorPage() {
         restored = latest
       }
       const brand = await loadBrand(restored.brandId)
-      saveSession.current = new PatternSaveSession(restored, savePattern)
+      saveSession.current = new PatternSaveSession(restored, savePattern, saveThumbnail)
       latestPatternRef.current = restored
       setPattern(restored); setBrandColors(brand.colors); setBrandId(restored.brandId)
       setSelectedSystem(getColorSystemForBrand(restored.brandId) ?? 'MARD')
@@ -379,7 +389,7 @@ export default function EditorPage() {
 
     try {
       const convertedPattern = await convert(imagePath, params, (p) => setProgress(p), basePattern, basePattern ? persistPattern : undefined)
-      if (!basePattern) saveSession.current = new PatternSaveSession(convertedPattern, savePattern)
+      if (!basePattern) saveSession.current = new PatternSaveSession(convertedPattern, savePattern, saveThumbnail)
       const brand = await loadBrand(convertedPattern.brandId)
       setBrandColors(brand.colors)
       setSelectedSystem(getColorSystemForBrand(convertedPattern.brandId) ?? 'MARD')
@@ -411,7 +421,7 @@ export default function EditorPage() {
       createdAt: base?.createdAt ?? Date.now(), updatedAt: Date.now(),
     }
     if (base) await persistPattern(chosen)
-    else { await savePattern(chosen); saveSession.current = new PatternSaveSession(chosen, savePattern) }
+    else { await savePattern(chosen); saveSession.current = new PatternSaveSession(chosen, savePattern, saveThumbnail) }
     rememberAlgorithm(result.algorithm)
     setBrandColors(colors)
     setAlgorithm(algorithmFamily(result.algorithm))

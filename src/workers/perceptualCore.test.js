@@ -15,9 +15,9 @@ const request = (pixels, sw, sh, w = sw, h = sh, options = {}, colors = palette)
 })
 const ids = result => Array.from(result.grid, i => i === 65535 ? -1 : result.paletteUsed[i])
 
-test('原算法及两个依赖文件逐字节保持不变', () => {
+// 经典算法入口 imageProcessor.js 改由 imageProcessor.test.js 的结果锁保护
+test('经典算法的两个依赖文件逐字节保持不变', () => {
   const hashes = {
-    'imageProcessor.js': '808014c3d8dbb7928a76d1a479fe6707a0e86499c5ac861315496eb9213efd99',
     'dither.js': '0ca586ac1b8f0400a4c216235e9b8ee7030608423f7124b2ad35cc23f04b5e3f',
     'colorMatch.js': '373704cf856b25520e172f488c14be84c41d9f93a012c0f7d6d741a9eace16cd',
   }

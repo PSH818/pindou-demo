@@ -19,23 +19,35 @@ export function clonePattern(p: Pattern): Pattern {
     ...(p.conversionParams ? { conversionParams: { ...p.conversionParams } } : {}) }
 }
 
+/** 缩略图由网格派生、存盘时才重画，不算用户改动。 */
+const contentVersion = (p: Pattern): string => patternVersion({ ...p, thumbnail: '' })
+
 /** One editor session serializes its writes; each uses the last committed base. */
 export class PatternSaveSession {
   private base: Pattern
   private tail: Promise<void> = Promise.resolve()
   private conflict: PatternConflictError | null = null
   private write: (next: Pattern, expected: Pattern) => Promise<void>
-  constructor(initial: Pattern, write: (next: Pattern, expected: Pattern) => Promise<void>) {
+  private thumbnail?: (p: Pattern) => string | Promise<string>
+  constructor(
+    initial: Pattern,
+    write: (next: Pattern, expected: Pattern) => Promise<void>,
+    thumbnail?: (p: Pattern) => string | Promise<string>,
+  ) {
     this.base = clonePattern(initial)
     this.write = write
+    this.thumbnail = thumbnail
   }
   get id(): string { return this.base.id }
-  isDirty(p: Pattern): boolean { return patternVersion(p) !== patternVersion(this.base) }
+  isDirty(p: Pattern): boolean { return contentVersion(p) !== contentVersion(this.base) }
   save(p: Pattern): Promise<void> {
     const next = clonePattern(p)
     const task = this.tail.then(async () => {
       if (this.conflict) throw this.conflict
       if (next.id !== this.base.id) throw new Error('图纸保存会话不匹配')
+      // 内容变了才重画缩略图；没变就沿用已存的那张，
+      // 否则只打开不编辑也会改写记录，另一个标签页会被误判为冲突。
+      if (this.thumbnail) next.thumbnail = this.isDirty(next) ? await this.thumbnail(next) : this.base.thumbnail
       try {
         await this.write(next, this.base)
         this.base = next

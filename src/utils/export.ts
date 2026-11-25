@@ -197,8 +197,7 @@ export async function exportPatternToPNG(
     canvas.toBlob(b => b ? resolve(b) : reject(new Error('渲染失败')), 'image/png')
   )
   const filename = `${pattern.name || '拼豆图纸'}.png`
-  downloadBlob(blob, filename)
-  showToast('已保存到本地')
+  if (downloadBlob(blob, filename)) showToast('已保存到本地')
 }
 
 // ─── 导出图标尺（四边行列编号）────────────────────────────────────

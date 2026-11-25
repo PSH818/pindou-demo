@@ -133,9 +133,11 @@ export async function limitImageSize(url: string, maxSide = MAX_SOURCE_SIDE): Pr
  * 统一导出出口。桌面直接下载；手机和内置浏览器弹出保存面板，
  * 因为 a.download 在微信里无效，在 iOS 上只会存进「文件」而不是相册。
  */
-export function downloadBlob(blob: Blob, filename: string): void {
-  if (isTouchDevice() || isInAppBrowser()) { feedbackFile(blob, filename); return }
+/** 返回 true 表示已直接下载；false 表示弹出了保存面板，由用户自己完成保存 */
+export function downloadBlob(blob: Blob, filename: string): boolean {
+  if (isTouchDevice() || isInAppBrowser()) { feedbackFile(blob, filename); return false }
   directDownload(blob, filename)
+  return true
 }
 
 export function directDownload(blob: Blob, filename: string): void {

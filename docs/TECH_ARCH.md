@@ -157,9 +157,7 @@ src/
 ├── workers/                  Web Worker 文件（ES Module，Vite 打包）
 │   ├── imageProcessor.js     Worker 入口，消息调度
 │   ├── colorMatch.js         CIEDE2000 颜色匹配
-│   ├── dither.js             Floyd-Steinberg 抖动
-│   ├── octree.js             Octree 量化（遗留，未接入主流程）
-│   └── interpolate.js        双三次插值（遗留，未接入主流程）
+│   └── dither.js             Floyd-Steinberg 抖动
 │
 ├── data/                     品牌色板数据（打包进 bundle）
 │   ├── mard.json
@@ -172,7 +170,6 @@ src/
 │   └── usePattern.ts         图纸转换流程编排（Worker 生命周期）
 │
 ├── utils/                    工具函数
-│   ├── colorUtils.ts         RGB ↔ LAB 转换，CIEDE2000 计算
 │   ├── canvasHelper.ts       Canvas 节点获取封装
 │   ├── storage.ts            IndexedDB 读写封装（idb）
 │   ├── export.ts             PNG 导出
@@ -192,7 +189,6 @@ src/
 | `store/` | 运行时状态（当前图纸、工具状态） | 不持久化到 storage（由 hooks 负责） |
 | `utils/storage.ts` | IndexedDB 读写 | 统一数据版本管理，调用方不直接使用 idb |
 | `components/PatternCanvas` | 图纸渲染，响应 store 变化 | 不直接操作 store，通过 props 接收 |
-| `utils/colorUtils.ts` | 颜色空间转换 | 同时被主线程和 Worker 使用，不能有浏览器 API 依赖 |
 | `utils/exportPDF.ts` | PDF 导出 | 含 jsPDF，**必须动态 import**，禁止静态 import（避免 bundle 膨胀） |
 
 ---

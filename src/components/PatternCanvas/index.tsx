@@ -1,8 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { usePatternStore } from '../../store/patternStore'
-import { renderFull, renderSingleCell, CODE_MIN_SCALE_TOGGLE, type RenderOptions } from './renderer'
+import { renderFull, type RenderOptions } from './renderer'
 import type { BeadColor } from '../../types'
-import { TRANSPARENT } from '../../types'
 import { getCanvasFromRef } from '../../utils/canvasHelper'
 import './index.scss'
 
@@ -38,6 +37,8 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
   const highlightColorIdx = usePatternStore(s => s.highlightColorIdx)
   const showGuideLines    = usePatternStore(s => s.showGuideLines)
   const guideLinesColor   = usePatternStore(s => s.guideLinesColor)
+  const beginStroke       = usePatternStore(s => s.beginStroke)
+  const endStroke         = usePatternStore(s => s.endStroke)
   const paintCell         = usePatternStore(s => s.paintCell)
   const eraseCell         = usePatternStore(s => s.eraseCell)
   const fillRegion        = usePatternStore(s => s.fillRegion)
@@ -58,6 +59,8 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
 
   useEffect(() => {
     renderFnRef.current = () => {
+      // 一笔之内网格是原地写入的，直接读 store 里的最新图纸
+      const pattern = usePatternStore.getState().pattern
       if (!ctxRef.current || !isReadyRef.current || !pattern) return
       const { w, h } = canvasSizeRef.current
       const opts: RenderOptions = {
@@ -78,6 +81,21 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
   useEffect(() => {
     renderFnRef.current()
   }, [pattern, highlightColorIdx, brandColors, showColorCode, showRuler, showGuideLines, guideLinesColor])
+
+  // 拖动作画时按帧重绘：同一帧内经过多格只画一次
+  const frameRef = useRef(0)
+  function scheduleRender() {
+    if (frameRef.current) return
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = 0
+      renderFnRef.current()
+    })
+  }
+
+  useEffect(() => () => {
+    cancelAnimationFrame(frameRef.current)
+    endStroke()
+  }, [endStroke])
 
   // ─── Canvas 初始化（Web 版，直接用 ref）──────────────────────
 
@@ -171,6 +189,7 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
   }
 
   function inBounds(cellX: number, cellY: number): boolean {
+    const pattern = usePatternStore.getState().pattern
     if (!pattern) return false
     return cellX >= 0 && cellX < pattern.width && cellY >= 0 && cellY < pattern.height
   }
@@ -194,31 +213,13 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
     }
   }
 
-  function fastPaintCell(cellX: number, cellY: number) {
-    if (!ctxRef.current || !pattern || !inBounds(cellX, cellY)) return
+  // 画笔 / 橡皮经过一格。笔内的改动不经过 React，这里自己安排重绘
+  function strokeCell(cellX: number, cellY: number) {
+    if (!inBounds(cellX, cellY)) return
     const tool = toolRef.current
     if (tool !== 'brush' && tool !== 'eraser') return
-
     tool === 'brush' ? paintCell(cellX, cellY) : eraseCell(cellX, cellY)
-
-    const latestState = usePatternStore.getState()
-    const latest = latestState.pattern
-    if (!latest) return
-
-    renderSingleCell(
-      ctxRef.current,
-      cellX, cellY,
-      latest,
-      brandColors,
-      {
-        ...tfRef.current,
-        showGrid:      true,
-        circular:      false,
-        highlightColorIdx: latestState.highlightColorIdx,
-        showColorCode: showColorCode,
-        showRuler,
-      }
-    )
+    scheduleRender()
   }
 
   // ─── 触摸/鼠标事件 ────────────────────────────────────────
@@ -239,10 +240,12 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
         applyTool(cellX, cellY)
         ts.mode = 'idle'
       } else {
-        fastPaintCell(cellX, cellY)
+        beginStroke()
+        strokeCell(cellX, cellY)
       }
 
     } else if (touches.length >= 2) {
+      endStroke()
       ts.mode      = 'pinching'
       ts.pinchDist = calcPinchDist(touches[0], touches[1])
       ts.pinchMidX = (touches[0].clientX + touches[1].clientX) / 2
@@ -260,7 +263,7 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
       if (cellX === ts.prevCellX && cellY === ts.prevCellY) return
       ts.prevCellX = cellX
       ts.prevCellY = cellY
-      fastPaintCell(cellX, cellY)
+      strokeCell(cellX, cellY)
 
     } else if (ts.mode === 'pinching' && touches.length >= 2) {
       const dpr      = dprRef.current
@@ -295,6 +298,7 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
   }, [])
 
   const handleTouchEnd = useCallback(() => {
+    endStroke()
     touchRef.current.mode      = 'idle'
     touchRef.current.prevCellX = -1
     touchRef.current.prevCellY = -1
@@ -348,7 +352,8 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
     } else {
       touchRef.current.prevCellX = cellX
       touchRef.current.prevCellY = cellY
-      fastPaintCell(cellX, cellY)
+      beginStroke()
+      strokeCell(cellX, cellY)
     }
   }, [])
 
@@ -368,11 +373,12 @@ export default function PatternCanvas({ brandColors, showColorCode, showRuler = 
     if (cellX === touchRef.current.prevCellX && cellY === touchRef.current.prevCellY) return
     touchRef.current.prevCellX = cellX
     touchRef.current.prevCellY = cellY
-    fastPaintCell(cellX, cellY)
+    strokeCell(cellX, cellY)
   }, [])
 
   const handleMouseUp = useCallback(() => {
     mouseDownRef.current = false
+    endStroke()
     if (panRef.current) {
       panRef.current = null
       setCursor(spaceHeldRef.current ? 'grab' : '')

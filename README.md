@@ -40,7 +40,7 @@
 ## 工程化
 
 - TypeScript 严格模式，`npm run typecheck`
-- 73 个单元测试（Node 内置 test runner），覆盖取样与量化核心、网格检测、色板、存储边界、保存冲突等，`npm test`
+- 89 个单元测试（Node 内置 test runner），覆盖取样与量化核心、经典算法输出锁定、网格检测、色板、撤销重做、存储边界、保存冲突等，`npm test`
 - GitHub Actions：每次推送依次执行类型检查、单元测试、构建，然后部署到 GitHub Pages
 
 ```bash

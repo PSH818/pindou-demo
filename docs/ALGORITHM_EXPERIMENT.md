@@ -16,8 +16,8 @@
 
 | 项目 | 原算法 | 感知保真 v1 |
 |---|---|---|
-| Worker | `src/workers/imageProcessor.js` | `src/workers/perceptualProcessor.js` |
-| 实现核心 | 原有文件，未改动 | `src/workers/perceptualCore.js` |
+| Worker | `src/workers/imageProcessor.js` | `src/workers/faithfulProcessor.js` |
+| 实现核心 | 原有实现，输出由结果锁测试保护 | `src/workers/perceptualCore.js` |
 | 取样 | RGB bucket 主色 / RGB 均值 | 精确覆盖面积与 alpha 权重 |
 | 卡通模式 | RGB bucket 投票 | 感知近色投票；高反差深色轮廓占比 ≥35% 时保护 |
 | 写实模式 | sRGB 均值 | 线性光均值 |

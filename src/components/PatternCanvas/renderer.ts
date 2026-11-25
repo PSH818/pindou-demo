@@ -13,17 +13,13 @@ export interface RenderOptions {
   showGrid: boolean
   circular: boolean               // 圆形珠子模式（scale >= 10 时建议开启）
   highlightColorIdx: number | null // 高亮某个颜色（来自色板点击）
-  showColorCode: boolean          // 在格子内显示色号（scale >= CODE_MIN_SCALE 时生效）
+  showColorCode: boolean          // 在格子内显示色号
   showRuler?: boolean             // 显示行列编号标尺
   showGuideLines?: boolean        // 每 N 格加重划线
   guideLinesEvery?: number        // 划线间隔格数（默认 5）
   guideLinesColor?: string        // 划线颜色（默认 'rgba(0,0,0,0.35)'）
 }
 
-// 色号文字显示的最低 scale 阈值（px/格）：自动模式（已弃用，保留供外部引用）
-export const CODE_MIN_SCALE = 20
-// 开关打开时的较低 scale 阈值（px/格）
-export const CODE_MIN_SCALE_TOGGLE = 12
 // 标尺带宽（px，覆盖在 canvas 顶/左边缘）
 export const RULER_PX = 20
 
@@ -69,67 +65,6 @@ export function renderFull(
   }
   if (opts.showRuler) {
     drawRuler(ctx, canvasW, canvasH, pattern, opts)
-  }
-}
-
-// ─── 单格局部更新（画笔拖动时用，避免全量重绘）───────────────
-
-export function renderSingleCell(
-  ctx: CanvasRenderingContext2D,
-  cellX: number,
-  cellY: number,
-  pattern: Pattern,
-  allColors: BeadColor[],
-  opts: RenderOptions
-): void {
-  const { scale, offsetX, offsetY, circular } = opts
-  const [px, py, pw, ph] = cellPx(offsetX, offsetY, scale, cellX, cellY)
-
-  // 清除并重绘背景色（fillRect 覆盖完整清除区域，避免透明缝隙露出白色底层）
-  ctx.clearRect(px - 1, py - 1, pw + 2, ph + 2)
-  ctx.fillStyle = BG_COLOR
-  ctx.fillRect(px - 1, py - 1, pw + 2, ph + 2)
-
-  const idx = pattern.grid[cellY * pattern.width + cellX]
-  let color: BeadColor | undefined
-
-  if (idx !== TRANSPARENT) {
-    const colorId = pattern.paletteUsed[idx]
-    color = allColors.find(c => c.id === colorId)
-    if (color) {
-      ctx.globalAlpha = (opts.highlightColorIdx !== null && idx !== opts.highlightColorIdx) ? 0.18 : 1
-      ctx.fillStyle = rgbStr(color.rgb)
-      drawBeadBody(ctx, px, py, pw, ph, circular)
-      if (circular) {
-        ctx.fillStyle = HOLE_COLOR
-        drawBeadHole(ctx, px, py, pw, ph)
-      }
-    }
-  }
-
-  ctx.globalAlpha = 1
-
-  // 补回网格线
-  if (opts.showGrid && scale >= 5) {
-    ctx.strokeStyle = GRID_COLOR
-    ctx.lineWidth = 1
-    ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1)
-  }
-
-  // 补回色号文字
-  if (opts.showColorCode && color && (opts.highlightColorIdx === null || idx === opts.highlightColorIdx)) {
-    const fontSize = Math.max(6, Math.floor(scale * 0.40))
-    ctx.font = `bold ${fontSize}px sans-serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = contrastColor(color.rgb)
-    ctx.fillText(color.code, px + pw / 2, py + ph / 2)
-  }
-  if (idx !== TRANSPARENT && idx === opts.highlightColorIdx) {
-    const lw = Math.max(1.5, Math.min(pw, ph) * 0.07)
-    ctx.strokeStyle = HIGHLIGHT_COLOR
-    ctx.lineWidth = lw
-    ctx.strokeRect(px + lw / 2, py + lw / 2, pw - lw, ph - lw)
   }
 }
 
